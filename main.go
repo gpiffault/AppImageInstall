@@ -203,35 +203,36 @@ func processAppImage(appImagePath string) error {
 	}
 	defer UnmountAppImage(pid, mountPoint)
 
-	var execCommand string
-	needsNoSandbox := IsElectronApp(mountPoint, appImagePath) || TestAppImageSandbox(appImagePath)
-
-	if needsNoSandbox {
-		execCommand = fmt.Sprintf(`"%s" --no-sandbox`, appImagePath)
-	} else {
-		execCommand = fmt.Sprintf(`"%s"`, appImagePath)
+	desktopContent, iconInMount, err := ExtractDesktopFile(mountPoint)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to extract desktop file: %v\n", err)
+		return err
 	}
 
-	name, version, icon, categories := ExtractMetadata(mountPoint)
-
 	iconPath := ""
-	if icon != "" {
-		ip, err := CopyIcon(icon, iconsDir())
+	if iconInMount != "" {
+		ip, err := CopyIcon(iconInMount, iconsDir())
 		if err == nil {
 			iconPath = ip
 		}
 	}
 
-	if categories == "" {
-		categories = "Utility;Application;"
+	desktopContent = ModifyDesktopContent(desktopContent, appImagePath, iconPath)
+
+	needsNoSandbox := IsElectronApp(mountPoint, appImagePath) || TestAppImageSandbox(appImagePath)
+	if needsNoSandbox {
+		desktopContent = strings.Replace(desktopContent,
+			fmt.Sprintf(`"%s"`, appImagePath),
+			fmt.Sprintf(`"%s" --no-sandbox`, appImagePath), 1)
 	}
 
-	_, err = CreateDesktopEntryAtomic(name, execCommand, iconPath, version, categories)
+	err = WriteDesktopEntry(desktopContent)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create desktop file: %v\n", err)
 		return err
 	}
 
+	name := desktopField(desktopContent, "Name")
 	fmt.Printf("✓ Integrated %s successfully!\n", name)
 	return nil
 }

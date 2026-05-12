@@ -11,14 +11,6 @@ import (
 	"time"
 )
 
-type AppImageMeta struct {
-	Name       string
-	Version    string
-	Icon       string
-	Categories string
-	Path       string
-}
-
 func IsExecutable(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -98,38 +90,20 @@ func UnmountAppImage(pid int, mountPoint string) {
 	}
 }
 
-func ExtractMetadata(mountPoint string) (name, version, icon, categories string) {
+func ExtractDesktopFile(mountPoint string) (desktopContent string, iconInMount string, err error) {
 	desktopFiles, _ := filepath.Glob(filepath.Join(mountPoint, "*.desktop"))
 
-	if len(desktopFiles) > 0 {
-		f, err := os.Open(desktopFiles[0])
-		if err == nil {
-			defer f.Close()
-			scanner := bufio.NewScanner(f)
-			for scanner.Scan() {
-				line := scanner.Text()
-				if name == "" && strings.HasPrefix(line, "Name=") {
-					name = strings.TrimPrefix(line, "Name=")
-				}
-				if version == "" && strings.HasPrefix(line, "Version=") {
-					version = strings.TrimPrefix(line, "Version=")
-				}
-				if categories == "" && strings.HasPrefix(line, "Categories=") {
-					categories = strings.TrimPrefix(line, "Categories=")
-				}
-				if version != "" && categories != "" {
-					break
-				}
-			}
-		}
+	if len(desktopFiles) == 0 {
+		return "", "", fmt.Errorf("no .desktop file found in AppImage")
 	}
 
-	icon = FindIcon(mountPoint)
-	if categories == "" {
-		categories = "Utility;Application;"
+	data, err := os.ReadFile(desktopFiles[0])
+	if err != nil {
+		return "", "", fmt.Errorf("read .desktop file: %w", err)
 	}
 
-	return
+	iconInMount = FindIcon(mountPoint)
+	return string(data), iconInMount, nil
 }
 
 func FindIcon(mountPoint string) string {
