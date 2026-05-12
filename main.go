@@ -22,8 +22,7 @@ func main() {
 	// Direct .AppImage file path → install it
 	if strings.HasSuffix(strings.ToLower(cmd), ".appimage") {
 		if _, err := os.Stat(cmd); err == nil {
-			cfg := LoadConfig()
-			installSingleAppImage(cfg, cmd)
+			installSingleAppImage(cmd)
 			return
 		}
 	}
@@ -32,26 +31,19 @@ func main() {
 	case "status", "info":
 		cmdStatus()
 	case "find", "search":
-		cfg := LoadConfig()
-		cmdFind(cfg)
+		cmdFind()
 	case "install", "add":
-		cfg := LoadConfig()
-		cmdInstall(cfg, args)
+		cmdInstall(args)
 	case "list", "ls":
-		cfg := LoadConfig()
-		cmdList(cfg)
+		cmdList()
 	case "remove", "uninstall", "rm":
-		cfg := LoadConfig()
-		cmdRemove(cfg, args)
+		cmdRemove(args)
 	case "run":
-		cfg := LoadConfig()
-		cmdRun(cfg, args)
+		cmdRun(args)
 	case "debug":
-		cfg := LoadConfig()
-		cmdDebug(cfg, args)
+		cmdDebug(args)
 	case "desktop", "desktops":
-		cfg := LoadConfig()
-		cmdDesktop(cfg)
+		cmdDesktop()
 	case "--version", "-v":
 		fmt.Printf("AppImageXdg v%s\n", version)
 	case "--dry-run":
@@ -88,31 +80,25 @@ Examples:
 }
 
 func cmdStatus() {
-	cfg := LoadConfig()
-	cfg.EnsureDirs()
-
 	fmt.Println("AppImageXdg - Current Status")
 	fmt.Println("===========================================")
 	fmt.Println()
 	fmt.Println("Configuration:")
-	fmt.Printf("  Config file: %s/config.ini\n", cfg.ConfigDir)
-	fmt.Printf("  Icons stored in: %s\n", cfg.IconsDir)
-	fmt.Printf("  Desktop entries in: %s\n", cfg.UpdateDir)
+	fmt.Printf("  Icons stored in: %s\n", iconsDir())
+	fmt.Printf("  Desktop entries in: %s\n", applicationsDir())
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+	entries, _ := ListAppImageDesktopEntries(applicationsDir())
 	fmt.Printf("Integrated AppImages: %d\n", len(entries))
 	fmt.Println()
 	fmt.Println("Quick tips:")
 	fmt.Println("  - Run 'axdg' for short commands")
-		fmt.Println("  - Run 'axdg find' to search for AppImages on your system")
-		fmt.Println("  - Run 'axdg install' to install from common locations")
-		fmt.Println("  - Tab completion available: axdg <TAB>")
+	fmt.Println("  - Run 'axdg find' to search for AppImages on your system")
+	fmt.Println("  - Run 'axdg install' to install from common locations")
+	fmt.Println("  - Tab completion available: axdg <TAB>")
 }
 
-func cmdFind(cfg *Config) {
-	cfg.EnsureDirs()
-
+func cmdFind() {
 	cwd, _ := os.Getwd()
 	fmt.Printf("Searching for AppImages in %s...\n", cwd)
 	fmt.Println("=========================================")
@@ -128,7 +114,7 @@ func cmdFind(cfg *Config) {
 	var unintegrated []string
 	for _, app := range appImages {
 		base := filepath.Base(app)
-		if DesktopFileExists(cfg.UpdateDir, base) {
+		if DesktopFileExists(applicationsDir(), base) {
 			fmt.Printf("  ✓ %s (already integrated)\n", base)
 			foundAny = true
 		} else {
@@ -153,7 +139,7 @@ func cmdFind(cfg *Config) {
 			for _, app := range unintegrated {
 				fmt.Println()
 				fmt.Printf("Integrating: %s\n", filepath.Base(app))
-				installSingleAppImage(cfg, app)
+				installSingleAppImage(app)
 			}
 		}
 	}
@@ -182,11 +168,9 @@ func findAppImageFiles(dir string) []string {
 	return results
 }
 
-func cmdInstall(cfg *Config, args []string) {
-	cfg.EnsureDirs()
-
+func cmdInstall(args []string) {
 	if len(args) == 0 {
-		cmdFind(cfg)
+		cmdFind()
 		return
 	}
 
@@ -195,19 +179,19 @@ func cmdInstall(cfg *Config, args []string) {
 			fmt.Printf("File not found: %s\n", appImage)
 			continue
 		}
-		installSingleAppImage(cfg, appImage)
+		installSingleAppImage(appImage)
 	}
 }
 
-func installSingleAppImage(cfg *Config, appImagePath string) {
-	cfg.EnsureDirs()
+func installSingleAppImage(appImagePath string) {
+	ensureDirs()
 
-	if err := processAppImage(cfg, appImagePath); err != nil {
+	if err := processAppImage(appImagePath); err != nil {
 		fmt.Fprintf(os.Stderr, "Processing failed - AppImage remains at: %s\n", appImagePath)
 	}
 }
 
-func processAppImage(cfg *Config, appImagePath string) error {
+func processAppImage(appImagePath string) error {
 	_ = os.Chmod(appImagePath, 0755)
 
 	fmt.Printf("Processing %s...\n", filepath.Base(appImagePath))
@@ -240,7 +224,7 @@ func processAppImage(cfg *Config, appImagePath string) error {
 
 	iconPath := ""
 	if icon != "" {
-		ip, err := CopyIcon(icon, cfg.IconsDir)
+		ip, err := CopyIcon(icon, iconsDir())
 		if err == nil {
 			iconPath = ip
 		}
@@ -250,7 +234,7 @@ func processAppImage(cfg *Config, appImagePath string) error {
 		categories = "Utility;Application;"
 	}
 
-	_, err = CreateDesktopEntryAtomic(cfg, appName, execCommand, iconPath, version, categories)
+	_, err = CreateDesktopEntryAtomic(appName, execCommand, iconPath, version, categories)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create desktop file: %v\n", err)
 		return err
@@ -260,14 +244,12 @@ func processAppImage(cfg *Config, appImagePath string) error {
 	return nil
 }
 
-func cmdList(cfg *Config) {
-	cfg.EnsureDirs()
-
+func cmdList() {
 	fmt.Println("Integrated AppImages")
 	fmt.Println("===================")
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+	entries, _ := ListAppImageDesktopEntries(applicationsDir())
 	if len(entries) == 0 {
 		fmt.Println("No AppImages integrated yet.")
 		fmt.Println()
@@ -303,15 +285,13 @@ func cmdList(cfg *Config) {
 	}
 }
 
-func cmdRemove(cfg *Config, args []string) {
-	cfg.EnsureDirs()
-
+func cmdRemove(args []string) {
 	if len(args) == 0 {
 		fmt.Println("Usage: axdg remove <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
 
-		entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+		entries, _ := ListAppImageDesktopEntries(applicationsDir())
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -319,19 +299,19 @@ func cmdRemove(cfg *Config, args []string) {
 	}
 
 	searchTerm := args[0]
-	matches := FindDesktopEntries(cfg.UpdateDir, searchTerm)
+	matches := FindDesktopEntries(applicationsDir(), searchTerm)
 
 	switch len(matches) {
 	case 0:
 		fmt.Printf("No AppImage found matching: %s\n", searchTerm)
 		fmt.Println()
 		fmt.Println("Did you mean one of these?")
-		allEntries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+		allEntries, _ := ListAppImageDesktopEntries(applicationsDir())
 		for _, e := range allEntries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
 	case 1:
-		removeAppImageIntegration(cfg, matches[0])
+		removeAppImageIntegration(matches[0])
 	default:
 		fmt.Printf("Multiple AppImages match '%s':\n", searchTerm)
 		fmt.Println()
@@ -350,7 +330,7 @@ func cmdRemove(cfg *Config, args []string) {
 		fmt.Sscanf(choiceStr, "%d", &choice)
 
 		if choice >= 1 && choice <= len(matches) {
-			removeAppImageIntegration(cfg, matches[choice-1])
+			removeAppImageIntegration(matches[choice-1])
 		} else if choice == 0 {
 			fmt.Println("Removal cancelled.")
 		} else {
@@ -359,7 +339,7 @@ func cmdRemove(cfg *Config, args []string) {
 	}
 }
 
-func removeAppImageIntegration(cfg *Config, entry DesktopEntry) {
+func removeAppImageIntegration(entry DesktopEntry) {
 	fmt.Printf("Found: %s\n", entry.Name)
 	fmt.Print("Remove this AppImage integration? (y/n): ")
 
@@ -368,7 +348,7 @@ func removeAppImageIntegration(cfg *Config, entry DesktopEntry) {
 	response = strings.TrimSpace(strings.ToLower(response))
 
 	if response == "y" || response == "yes" {
-		if err := RemoveDesktopEntry(cfg, entry); err != nil {
+		if err := RemoveDesktopEntry(entry); err != nil {
 			fmt.Fprintf(os.Stderr, "Error removing entry: %v\n", err)
 		} else {
 			fmt.Printf("✓ Removed %s integration\n", entry.Name)
@@ -378,14 +358,12 @@ func removeAppImageIntegration(cfg *Config, entry DesktopEntry) {
 	}
 }
 
-func cmdRun(cfg *Config, args []string) {
-	cfg.EnsureDirs()
-
+func cmdRun(args []string) {
 	if len(args) == 0 {
 		fmt.Println("Usage: axdg run <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+		entries, _ := ListAppImageDesktopEntries(applicationsDir())
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -393,7 +371,7 @@ func cmdRun(cfg *Config, args []string) {
 	}
 
 	searchTerm := args[0]
-	entries := FindDesktopEntries(cfg.UpdateDir, searchTerm)
+	entries := FindDesktopEntries(applicationsDir(), searchTerm)
 
 	for _, e := range entries {
 		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
@@ -421,14 +399,12 @@ func cmdRun(cfg *Config, args []string) {
 	fmt.Printf("No AppImage found matching: %s\n", searchTerm)
 }
 
-func cmdDebug(cfg *Config, args []string) {
-	cfg.EnsureDirs()
-
+func cmdDebug(args []string) {
 	if len(args) == 0 {
 		fmt.Println("Usage: axdg debug <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+		entries, _ := ListAppImageDesktopEntries(applicationsDir())
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -436,7 +412,7 @@ func cmdDebug(cfg *Config, args []string) {
 	}
 
 	searchTerm := args[0]
-	entries := FindDesktopEntries(cfg.UpdateDir, searchTerm)
+	entries := FindDesktopEntries(applicationsDir(), searchTerm)
 
 	for _, e := range entries {
 		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
@@ -530,15 +506,12 @@ func runAppImageDirect(path string, flags []string) {
 	_ = cmd.Run()
 }
 
-
-func cmdDesktop(cfg *Config) {
-	cfg.EnsureDirs()
-
+func cmdDesktop() {
 	fmt.Println("Desktop Files for AppImages")
 	fmt.Println("===========================")
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
+	entries, _ := ListAppImageDesktopEntries(applicationsDir())
 	if len(entries) == 0 {
 		fmt.Println("No AppImage desktop files found.")
 		return

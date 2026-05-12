@@ -31,7 +31,7 @@ go build -ldflags "-X main.version=$(git describe --tags --always)" -o axdg .
 
 ```
 axdg                    Show help
-axdg status             Show configuration and status
+axdg status             Show status
 axdg find               Find AppImages in current directory
 axdg install [file]     Install AppImage(s) — prompts if no file given
 axdg list               List integrated AppImages
@@ -60,17 +60,14 @@ axdg remove Firefox
 axdg debug Firefox
 ```
 
-## Configuration
+## XDG Directories
 
-Configuration is stored at `~/.config/AppImageXdg/config.ini`:
+AppImageXdg uses standard [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) paths (respects `$XDG_DATA_HOME`, falls back to `~/.local/share`):
 
-```ini
-icons_dir=~/.local/share/icons/AppImageXdg
-update_dir=~/.local/share/applications
-```
+- `$XDG_DATA_HOME/applications/` — `.desktop` entries
+- `$XDG_DATA_HOME/icons/AppImageXdg/` — extracted icons
 
-- **icons_dir** — Where extracted AppImage icons are stored
-- **update_dir** — Where `.desktop` files are created
+No configuration file needed.
 
 ## Original Project
 
