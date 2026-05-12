@@ -58,25 +58,25 @@ func main() {
 }
 
 func showHelp() {
-	fmt.Println(`AppImageXdg (axdg) - Simple AppImage Management
+	fmt.Println(`AppImageXdg - Simple AppImage Management
 
 Quick Commands:
-  axdg                    Show this help
-  axdg status             Show current configuration and status
-  axdg find               Find AppImages on your system
-  axdg install [file]     Install AppImage(s) - prompts if no file given
-  axdg list               List integrated AppImages
-  axdg remove <n>         Remove an integrated AppImage
-  axdg run <name>         Run an AppImage with live output
-  axdg debug <name>       Run an AppImage with debug/verbose output
-  axdg desktop            Show .desktop files created
-  axdg help               Show detailed help with all options
+  AppImageXdg                    Show this help
+  AppImageXdg status             Show current configuration and status
+  AppImageXdg find               Find AppImages on your system
+  AppImageXdg install [file]     Install AppImage(s) - prompts if no file given
+  AppImageXdg list               List integrated AppImages
+  AppImageXdg remove <n>         Remove an integrated AppImage
+  AppImageXdg run <name>         Run an AppImage with live output
+  AppImageXdg debug <name>       Run an AppImage with debug/verbose output
+  AppImageXdg desktop            Show .desktop files created
+  AppImageXdg help               Show detailed help with all options
 
 Examples:
-  axdg find               # Find all AppImages on your system
-  axdg install            # Interactive install from found AppImages
-  axdg install ~/Downloads/app.AppImage
-  axdg remove Firefox     # Remove Firefox integration`)
+  AppImageXdg find               # Find all AppImages on your system
+  AppImageXdg install            # Interactive install from found AppImages
+  AppImageXdg install ~/Downloads/app.AppImage
+  AppImageXdg remove Firefox     # Remove Firefox integration`)
 }
 
 func cmdStatus() {
@@ -92,10 +92,10 @@ func cmdStatus() {
 	fmt.Printf("Integrated AppImages: %d\n", len(entries))
 	fmt.Println()
 	fmt.Println("Quick tips:")
-	fmt.Println("  - Run 'axdg' for short commands")
-	fmt.Println("  - Run 'axdg find' to search for AppImages on your system")
-	fmt.Println("  - Run 'axdg install' to install from common locations")
-	fmt.Println("  - Tab completion available: axdg <TAB>")
+	fmt.Println("  - Run 'AppImageXdg' for short commands")
+	fmt.Println("  - Run 'AppImageXdg find' to search for AppImages on your system")
+	fmt.Println("  - Run 'AppImageXdg install' to install from common locations")
+	fmt.Println("  - Tab completion available: AppImageXdg <TAB>")
 }
 
 func cmdFind() {
@@ -254,9 +254,9 @@ func cmdList() {
 		fmt.Println("No AppImages integrated yet.")
 		fmt.Println()
 		fmt.Println("Tips:")
-		fmt.Println("  - Run 'axdg find' to search for AppImages")
-		fmt.Println("  - Run 'axdg install <file.AppImage>' to integrate an AppImage")
-		fmt.Println("  - Run 'axdg help' for all commands")
+		fmt.Println("  - Run 'AppImageXdg find' to search for AppImages")
+		fmt.Println("  - Run 'AppImageXdg install <file.AppImage>' to integrate an AppImage")
+		fmt.Println("  - Run 'AppImageXdg help' for all commands")
 		return
 	}
 
@@ -287,7 +287,7 @@ func cmdList() {
 
 func cmdRemove(args []string) {
 	if len(args) == 0 {
-		fmt.Println("Usage: axdg remove <AppName>")
+		fmt.Println("Usage: AppImageXdg remove <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
 
@@ -360,7 +360,7 @@ func removeAppImageIntegration(entry DesktopEntry) {
 
 func cmdRun(args []string) {
 	if len(args) == 0 {
-		fmt.Println("Usage: axdg run <AppName>")
+		fmt.Println("Usage: AppImageXdg run <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
 		entries, _ := ListAppImageDesktopEntries(applicationsDir())
@@ -401,7 +401,7 @@ func cmdRun(args []string) {
 
 func cmdDebug(args []string) {
 	if len(args) == 0 {
-		fmt.Println("Usage: axdg debug <AppName>")
+		fmt.Println("Usage: AppImageXdg debug <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
 		entries, _ := ListAppImageDesktopEntries(applicationsDir())
@@ -429,7 +429,7 @@ func cmdDebug(args []string) {
 			fmt.Println("  APPIMAGE_VERBOSE=1          - Enable verbose output")
 			fmt.Println()
 			fmt.Printf("You can also run with environment variables:\n")
-			fmt.Printf("  APPIMAGE_DEBUG=1 axdg run %s\n", searchTerm)
+			fmt.Printf("  APPIMAGE_DEBUG=1 AppImageXdg run %s\n", searchTerm)
 			fmt.Println()
 			fmt.Println("Running with verbose output...")
 			fmt.Println("Press Ctrl+C to stop")

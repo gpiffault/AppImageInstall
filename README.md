@@ -4,7 +4,7 @@ Integrate AppImages into your Linux desktop with automatic desktop entries, icon
 
 ## Features
 
-- **Single binary**: Use `axdg` for all operations
+- **Single binary**: Use `AppImageXdg` for all operations
 - **Auto-discovery**: Finds AppImages in the current directory
 - **Atomic desktop entries**: Files never get orphaned if integration fails
 - **Smart Electron detection**: Auto-detects Electron apps needing `--no-sandbox`
@@ -24,40 +24,40 @@ Or clone and build:
 ```sh
 git clone https://github.com/gpiffault/AppImageXdg.git
 cd AppImageXdg
-go build -ldflags "-X main.version=$(git describe --tags --always)" -o axdg .
+go build -ldflags "-X main.version=$(git describe --tags --always)" .
 ```
 
 ## Usage
 
 ```
-axdg                    Show help
-axdg status             Show status
-axdg find               Find AppImages in current directory
-axdg install [file]     Install AppImage(s) — prompts if no file given
-axdg list               List integrated AppImages
-axdg remove <name>      Remove an integrated AppImage
-axdg run <name>         Run an AppImage with live output
-axdg debug <name>       Run an AppImage with debug/verbose output
-axdg desktop            Show .desktop files created
+AppImageXdg                    Show help
+AppImageXdg status             Show status
+AppImageXdg find               Find AppImages in current directory
+AppImageXdg install [file]     Install AppImage(s) — prompts if no file given
+AppImageXdg list               List integrated AppImages
+AppImageXdg remove <name>      Remove an integrated AppImage
+AppImageXdg run <name>         Run an AppImage with live output
+AppImageXdg debug <name>       Run an AppImage with debug/verbose output
+AppImageXdg desktop            Show .desktop files created
 ```
 
 ### Examples
 
 ```
 # Find AppImages in current directory
-axdg find
+AppImageXdg find
 
 # Install a specific AppImage
-axdg install ~/Downloads/Firefox.AppImage
+AppImageXdg install ~/Downloads/Firefox.AppImage
 
 # List integrated AppImages
-axdg list
+AppImageXdg list
 
 # Remove an integration
-axdg remove Firefox
+AppImageXdg remove Firefox
 
 # Run with debug output
-axdg debug Firefox
+AppImageXdg debug Firefox
 ```
 
 ## XDG Directories
