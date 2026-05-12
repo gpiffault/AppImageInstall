@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	IconsDir     string
-	UpdateDir    string
-	AppImageDirs []string
-	ConfigDir    string
+	IconsDir  string
+	UpdateDir string
+	ConfigDir string
 }
 
 func expandPath(path string) string {
@@ -27,10 +26,9 @@ func LoadConfig() *Config {
 	configDir := filepath.Join(home, ".config", "AppImageXdg")
 
 	cfg := &Config{
-		IconsDir:     filepath.Join(home, ".local", "share", "icons", "AppImageXdg"),
-		UpdateDir:    filepath.Join(home, ".local", "share", "applications"),
-		AppImageDirs: []string{filepath.Join(home, "AppImages"), filepath.Join(home, "Applications")},
-		ConfigDir:    configDir,
+		IconsDir:  filepath.Join(home, ".local", "share", "icons", "AppImageXdg"),
+		UpdateDir: filepath.Join(home, ".local", "share", "applications"),
+		ConfigDir: configDir,
 	}
 
 	configFile := filepath.Join(configDir, "config.ini")
@@ -39,10 +37,6 @@ func LoadConfig() *Config {
 		return cfg
 	}
 	defer f.Close()
-
-	var appimagesDirLegacy string
-	var appimagesDirs []string
-	hasAppImageDirs := false
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -63,23 +57,7 @@ func LoadConfig() *Config {
 			cfg.IconsDir = expandPath(value)
 		case "update_dir":
 			cfg.UpdateDir = expandPath(value)
-		case "appimages_dir":
-			appimagesDirLegacy = expandPath(value)
-		case "appimages_dirs":
-			hasAppImageDirs = true
-			if strings.HasPrefix(value, "(") && strings.HasSuffix(value, ")") {
-				inner := value[1 : len(value)-1]
-				for _, q := range parseQuotedStrings(inner) {
-					appimagesDirs = append(appimagesDirs, expandPath(q))
-				}
-			}
 		}
-	}
-
-	if hasAppImageDirs && len(appimagesDirs) > 0 {
-		cfg.AppImageDirs = appimagesDirs
-	} else if appimagesDirLegacy != "" {
-		cfg.AppImageDirs = []string{appimagesDirLegacy}
 	}
 
 	_ = os.MkdirAll(cfg.UpdateDir, 0755)
@@ -88,35 +66,6 @@ func LoadConfig() *Config {
 	return cfg
 }
 
-func parseQuotedStrings(s string) []string {
-	var result []string
-	var current strings.Builder
-	inQuote := false
-	escaped := false
-
-	for _, ch := range s {
-		switch {
-		case escaped:
-			current.WriteRune(ch)
-			escaped = false
-		case ch == '\\':
-			escaped = true
-		case ch == '"':
-			if inQuote {
-				if current.Len() > 0 {
-					result = append(result, current.String())
-					current.Reset()
-				}
-			}
-			inQuote = !inQuote
-		default:
-			if inQuote {
-				current.WriteRune(ch)
-			}
-		}
-	}
-	return result
-}
 
 func (c *Config) EnsureDirs() error {
 	if err := os.MkdirAll(c.UpdateDir, 0755); err != nil {

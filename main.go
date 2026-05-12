@@ -11,17 +11,6 @@ import (
 
 const version = "2.1.0"
 
-var commonAppImageLocations = []string{
-	"$HOME/Downloads",
-	"$HOME/Desktop",
-	"$HOME/Applications",
-	"$HOME/apps",
-	"$HOME/AppImages",
-	"$HOME/.local/bin",
-	"$HOME/bin",
-	"/opt",
-}
-
 func main() {
 	args := os.Args[1:]
 	cmd := "help"
@@ -109,16 +98,6 @@ func cmdStatus() {
 	fmt.Printf("  Config file: %s/config.ini\n", cfg.ConfigDir)
 	fmt.Printf("  Icons stored in: %s\n", cfg.IconsDir)
 	fmt.Printf("  Desktop entries in: %s\n", cfg.UpdateDir)
-	fmt.Println("  AppImage directories monitored:")
-
-	for _, dir := range cfg.AppImageDirs {
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			count := countAppImagesInDir(dir)
-			fmt.Printf("    - %s (%d AppImages)\n", dir, count)
-		} else {
-			fmt.Printf("    - %s (not created yet)\n", dir)
-		}
-	}
 	fmt.Println()
 
 	entries, _ := ListAppImageDesktopEntries(cfg.UpdateDir)
@@ -131,79 +110,47 @@ func cmdStatus() {
 		fmt.Println("  - Tab completion available: axdg <TAB>")
 }
 
-func countAppImagesInDir(dir string) int {
-	count := 0
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".appimage") {
-			count++
-		}
-		return nil
-	})
-	return count
-}
-
 func cmdFind(cfg *Config) {
 	cfg.EnsureDirs()
 
-	fmt.Println("Searching for AppImages on your system...")
+	cwd, _ := os.Getwd()
+	fmt.Printf("Searching for AppImages in %s...\n", cwd)
 	fmt.Println("=========================================")
 	fmt.Println()
 
-	home, _ := os.UserHomeDir()
-	foundAny := false
-	var allAppImages []string
-
-	for _, loc := range commonAppImageLocations {
-		loc = strings.ReplaceAll(loc, "$HOME", home)
-		loc = os.ExpandEnv(loc)
-
-		info, err := os.Stat(loc)
-		if err != nil || !info.IsDir() {
-			continue
-		}
-
-		appImages := findAppImageFiles(loc)
-		if len(appImages) == 0 {
-			continue
-		}
-
-		foundAny = true
-		fmt.Printf("Found in %s:\n", loc)
-		for _, app := range appImages {
-			base := filepath.Base(app)
-			if DesktopFileExists(cfg.UpdateDir, base) {
-				fmt.Printf("  ✓ %s (already integrated)\n", base)
-			} else {
-				fmt.Printf("  - %s\n", base)
-				allAppImages = append(allAppImages, app)
-			}
-		}
-		fmt.Println()
-	}
-
-	if !foundAny {
-		fmt.Println("No AppImages found in common locations.")
-		fmt.Println()
-		fmt.Println("Tip: Place your AppImages in one of these directories:")
-		for _, loc := range commonAppImageLocations {
-			loc = strings.ReplaceAll(loc, "$HOME", home)
-			loc = os.ExpandEnv(loc)
-			fmt.Printf("  - %s\n", loc)
-		}
+	appImages := findAppImageFiles(cwd)
+	if len(appImages) == 0 {
+		fmt.Println("No AppImages found in current directory.")
 		return
 	}
 
-	if len(allAppImages) > 0 {
+	foundAny := false
+	var unintegrated []string
+	for _, app := range appImages {
+		base := filepath.Base(app)
+		if DesktopFileExists(cfg.UpdateDir, base) {
+			fmt.Printf("  ✓ %s (already integrated)\n", base)
+			foundAny = true
+		} else {
+			fmt.Printf("  - %s\n", base)
+			unintegrated = append(unintegrated, app)
+			foundAny = true
+		}
+	}
+
+	if !foundAny {
+		return
+	}
+
+	if len(unintegrated) > 0 {
+		fmt.Println()
 		fmt.Print("Would you like to integrate the unintegrated AppImages? (y/n): ")
 		reader := bufio.NewReader(os.Stdin)
 		response, _ := reader.ReadString('\n')
 		response = strings.TrimSpace(strings.ToLower(response))
 
 		if response == "y" || response == "yes" {
-			for _, app := range allAppImages {
+			for _, app := range unintegrated {
 				fmt.Println()
 				fmt.Printf("Integrating: %s\n", filepath.Base(app))
 				installSingleAppImage(cfg, app)
@@ -253,83 +200,10 @@ func cmdInstall(cfg *Config, args []string) {
 }
 
 func installSingleAppImage(cfg *Config, appImagePath string) {
-	originalDir := filepath.Dir(appImagePath)
-	if originalDir == "." {
-		originalDir, _ = os.Getwd()
-	}
-	appImageName := filepath.Base(appImagePath)
-
 	cfg.EnsureDirs()
 
-	fmt.Println("Where would you like to store this AppImage?")
-	fmt.Println("Available directories:")
-
-	dirs := append([]string{}, cfg.AppImageDirs...)
-	for i, dir := range dirs {
-		fmt.Printf("  %d) %s\n", i+1, dir)
-	}
-	customIdx := len(dirs) + 1
-	fmt.Printf("  %d) Custom location\n", customIdx)
-	fmt.Printf("  0) Keep in current location (%s)\n", originalDir)
-
-	fmt.Print("Choice (default: 1): ")
-	reader := bufio.NewReader(os.Stdin)
-	choiceStr, _ := reader.ReadString('\n')
-	choiceStr = strings.TrimSpace(choiceStr)
-
-	if choiceStr == "" {
-		choiceStr = "1"
-	}
-
-	var targetDir string
-	var choice int
-	fmt.Sscanf(choiceStr, "%d", &choice)
-
-	switch {
-	case choice == 0:
-		targetDir = originalDir
-	case choice == customIdx || choiceStr == fmt.Sprintf("%d", customIdx):
-		fmt.Print("Enter custom directory: ")
-		customDir, _ := reader.ReadString('\n')
-		targetDir = strings.TrimSpace(customDir)
-		cfg.AppImageDirs = append(cfg.AppImageDirs, targetDir)
-	case choice >= 1 && choice <= len(dirs):
-		targetDir = dirs[choice-1]
-	default:
-		targetDir = dirs[0]
-	}
-
-	_ = os.MkdirAll(targetDir, 0755)
-
-	needsMove := originalDir != targetDir
-	finalPath := appImagePath
-
-	if needsMove {
-		fmt.Printf("Will move %s to %s after successful processing...\n", appImageName, targetDir)
-	}
-
 	if err := processAppImage(cfg, appImagePath); err != nil {
-		if needsMove {
-			fmt.Fprintf(os.Stderr, "Processing failed - AppImage remains at: %s\n", appImagePath)
-		}
-		return
-	}
-
-	if needsMove {
-		fmt.Printf("Moving %s to %s...\n", appImageName, targetDir)
-		newPath := filepath.Join(targetDir, appImageName)
-		if err := os.Rename(appImagePath, newPath); err == nil {
-			finalPath = newPath
-
-			safeName := strings.TrimSuffix(appImageName, filepath.Ext(appImageName))
-			deName := strings.ReplaceAll(safeName, " ", "_") + ".desktop"
-			desktopPath := filepath.Join(cfg.UpdateDir, deName)
-			if _, err := os.Stat(desktopPath); err == nil {
-				_ = UpdateDesktopFileExec(desktopPath, appImagePath, finalPath)
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to move file, but integration completed at original location\n")
-		}
+		fmt.Fprintf(os.Stderr, "Processing failed - AppImage remains at: %s\n", appImagePath)
 	}
 }
 
