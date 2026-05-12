@@ -88,7 +88,7 @@ func cmdStatus() {
 	fmt.Printf("  Desktop entries in: %s\n", applicationsDir())
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(applicationsDir())
+	entries, _ := ListAppImageDesktopEntries()
 	fmt.Printf("Integrated AppImages: %d\n", len(entries))
 	fmt.Println()
 	fmt.Println("Quick tips:")
@@ -114,7 +114,7 @@ func cmdFind() {
 	var unintegrated []string
 	for _, app := range appImages {
 		base := filepath.Base(app)
-		if DesktopFileExists(applicationsDir(), base) {
+		if DesktopFileExists(base) {
 			fmt.Printf("  ✓ %s (already integrated)\n", base)
 			foundAny = true
 		} else {
@@ -212,15 +212,7 @@ func processAppImage(appImagePath string) error {
 		execCommand = fmt.Sprintf(`"%s"`, appImagePath)
 	}
 
-	version, icon, categories := ExtractMetadata(mountPoint)
-
-	rawName := strings.TrimSuffix(filepath.Base(appImagePath), filepath.Ext(appImagePath))
-	// Strip case-insensitive extension
-	for _, ext := range []string{".AppImage", ".appimage", ".APPIMAGE"} {
-		rawName = strings.TrimSuffix(rawName, ext)
-	}
-	appName := CleanAppImageName(rawName)
-	appName = PromptForName(appName)
+	name, version, icon, categories := ExtractMetadata(mountPoint)
 
 	iconPath := ""
 	if icon != "" {
@@ -234,13 +226,13 @@ func processAppImage(appImagePath string) error {
 		categories = "Utility;Application;"
 	}
 
-	_, err = CreateDesktopEntryAtomic(appName, execCommand, iconPath, version, categories)
+	_, err = CreateDesktopEntryAtomic(name, execCommand, iconPath, version, categories)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create desktop file: %v\n", err)
 		return err
 	}
 
-	fmt.Printf("✓ Integrated %s successfully!\n", appName)
+	fmt.Printf("✓ Integrated %s successfully!\n", name)
 	return nil
 }
 
@@ -249,7 +241,7 @@ func cmdList() {
 	fmt.Println("===================")
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(applicationsDir())
+	entries, _ := ListAppImageDesktopEntries()
 	if len(entries) == 0 {
 		fmt.Println("No AppImages integrated yet.")
 		fmt.Println()
@@ -291,7 +283,7 @@ func cmdRemove(args []string) {
 		fmt.Println()
 		fmt.Println("Available AppImages:")
 
-		entries, _ := ListAppImageDesktopEntries(applicationsDir())
+		entries, _ := ListAppImageDesktopEntries()
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -299,14 +291,14 @@ func cmdRemove(args []string) {
 	}
 
 	searchTerm := args[0]
-	matches := FindDesktopEntries(applicationsDir(), searchTerm)
+	matches := FindDesktopEntries(searchTerm)
 
 	switch len(matches) {
 	case 0:
 		fmt.Printf("No AppImage found matching: %s\n", searchTerm)
 		fmt.Println()
 		fmt.Println("Did you mean one of these?")
-		allEntries, _ := ListAppImageDesktopEntries(applicationsDir())
+		allEntries, _ := ListAppImageDesktopEntries()
 		for _, e := range allEntries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -363,7 +355,7 @@ func cmdRun(args []string) {
 		fmt.Println("Usage: AppImageXdg run <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries(applicationsDir())
+		entries, _ := ListAppImageDesktopEntries()
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -371,7 +363,7 @@ func cmdRun(args []string) {
 	}
 
 	searchTerm := args[0]
-	entries := FindDesktopEntries(applicationsDir(), searchTerm)
+	entries := FindDesktopEntries(searchTerm)
 
 	for _, e := range entries {
 		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
@@ -404,7 +396,7 @@ func cmdDebug(args []string) {
 		fmt.Println("Usage: AppImageXdg debug <AppName>")
 		fmt.Println()
 		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries(applicationsDir())
+		entries, _ := ListAppImageDesktopEntries()
 		for _, e := range entries {
 			fmt.Printf("  - %s\n", e.Name)
 		}
@@ -412,7 +404,7 @@ func cmdDebug(args []string) {
 	}
 
 	searchTerm := args[0]
-	entries := FindDesktopEntries(applicationsDir(), searchTerm)
+	entries := FindDesktopEntries(searchTerm)
 
 	for _, e := range entries {
 		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
@@ -511,7 +503,7 @@ func cmdDesktop() {
 	fmt.Println("===========================")
 	fmt.Println()
 
-	entries, _ := ListAppImageDesktopEntries(applicationsDir())
+	entries, _ := ListAppImageDesktopEntries()
 	if len(entries) == 0 {
 		fmt.Println("No AppImage desktop files found.")
 		return

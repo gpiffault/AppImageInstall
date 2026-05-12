@@ -98,7 +98,7 @@ func UnmountAppImage(pid int, mountPoint string) {
 	}
 }
 
-func ExtractMetadata(mountPoint string) (version, icon, categories string) {
+func ExtractMetadata(mountPoint string) (name, version, icon, categories string) {
 	desktopFiles, _ := filepath.Glob(filepath.Join(mountPoint, "*.desktop"))
 
 	if len(desktopFiles) > 0 {
@@ -108,6 +108,9 @@ func ExtractMetadata(mountPoint string) (version, icon, categories string) {
 			scanner := bufio.NewScanner(f)
 			for scanner.Scan() {
 				line := scanner.Text()
+				if name == "" && strings.HasPrefix(line, "Name=") {
+					name = strings.TrimPrefix(line, "Name=")
+				}
 				if version == "" && strings.HasPrefix(line, "Version=") {
 					version = strings.TrimPrefix(line, "Version=")
 				}
