@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const version = "2.1.0"
+var version = "dev"
 
 func main() {
 	args := os.Args[1:]

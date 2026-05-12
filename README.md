@@ -5,26 +5,26 @@ Integrate AppImages into your Linux desktop with automatic desktop entries, icon
 ## Features
 
 - **Single binary**: Use `axdg` for all operations
-- **Auto-discovery**: Finds AppImages in common locations (Downloads, Desktop, etc.)
+- **Auto-discovery**: Finds AppImages in the current directory
 - **Atomic desktop entries**: Files never get orphaned if integration fails
 - **Smart Electron detection**: Auto-detects Electron apps needing `--no-sandbox`
 - **Icon extraction**: Extracts and copies icons from AppImages
 - **Case-insensitive matching**: All commands support case-insensitive name matching
 - **Debug mode**: Run AppImages with verbose output, strace, and framework-specific debug flags
-- **Interactive prompts**: Customizable app names, storage location selection
+- **Interactive prompts**: Customizable app names
 
 ## Install
 
 ```sh
-go install github.com/8ByteSword/AppImageXdg@latest
+go install github.com/gpiffault/AppImageXdg@latest
 ```
 
 Or clone and build:
 
 ```sh
-git clone https://github.com/8ByteSword/AppImageXdg.git
+git clone https://github.com/gpiffault/AppImageXdg.git
 cd AppImageXdg
-go build -o axdg .
+go build -ldflags "-X main.version=$(git describe --tags --always)" -o axdg .
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ go build -o axdg .
 ```
 axdg                    Show help
 axdg status             Show configuration and status
-axdg find               Find AppImages on your system
+axdg find               Find AppImages in current directory
 axdg install [file]     Install AppImage(s) — prompts if no file given
 axdg list               List integrated AppImages
 axdg remove <name>      Remove an integrated AppImage
@@ -44,7 +44,7 @@ axdg desktop            Show .desktop files created
 ### Examples
 
 ```
-# Find AppImages in common locations
+# Find AppImages in current directory
 axdg find
 
 # Install a specific AppImage
@@ -67,12 +67,10 @@ Configuration is stored at `~/.config/AppImageXdg/config.ini`:
 ```ini
 icons_dir=~/.local/share/icons/AppImageXdg
 update_dir=~/.local/share/applications
-appimages_dirs=("$HOME/Applications" "$HOME/AppImages")
 ```
 
 - **icons_dir** — Where extracted AppImage icons are stored
 - **update_dir** — Where `.desktop` files are created
-- **appimages_dirs** — Directories monitored for AppImages
 
 ## Original Project
 
