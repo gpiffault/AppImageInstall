@@ -68,6 +68,10 @@ func ModifyDesktopContent(desktopContent, appImagePath, iconPath string) string 
 			line = "Exec=" + val
 		}
 
+		if strings.HasPrefix(line, "TryExec=") {
+			continue
+		}
+
 		if strings.HasPrefix(line, "Icon=") && iconPath != "" {
 			line = "Icon=" + iconPath
 		}
