@@ -10,12 +10,10 @@ import (
 )
 
 type DesktopEntry struct {
-	Path       string
-	Name       string
-	Exec       string
-	Icon       string
-	Version    string
-	Categories string
+	Path string
+	Name string
+	Exec string
+	Icon string
 }
 
 func WriteDesktopEntry(content string) error {
@@ -116,10 +114,6 @@ func parseDesktopEntry(path string) *DesktopEntry {
 			entry.Exec = strings.TrimPrefix(line, "Exec=")
 		case strings.HasPrefix(line, "Icon="):
 			entry.Icon = strings.TrimPrefix(line, "Icon=")
-		case strings.HasPrefix(line, "Version="):
-			entry.Version = strings.TrimPrefix(line, "Version=")
-		case strings.HasPrefix(line, "Categories="):
-			entry.Categories = strings.TrimPrefix(line, "Categories=")
 		}
 	}
 	return entry
