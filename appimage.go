@@ -13,10 +13,15 @@ import (
 
 func IsExecutable(path string) bool {
 	info, err := os.Stat(path)
-	if err != nil {
-		return false
+	if err == nil {
+		return info.Mode()&0111 != 0
 	}
-	return info.Mode()&0111 != 0
+	if !strings.ContainsRune(path, filepath.Separator) {
+		if lp, e := exec.LookPath(path); e == nil && lp != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func MountAppImage(path string) (mountPoint string, pid int, err error) {

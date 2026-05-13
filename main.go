@@ -71,7 +71,7 @@ func cleanupStaleEntries(autoYes bool) {
 		if execPath == "" {
 			continue
 		}
-		if _, err := os.Stat(execPath); os.IsNotExist(err) {
+		if !IsExecutable(execPath) {
 			fmt.Printf("Stale entry: '%s' -> %s\n", entry.Name, execPath)
 			if autoYes || promptYesNo("Remove this entry?") {
 				if err := RemoveDesktopEntry(entry); err != nil {
