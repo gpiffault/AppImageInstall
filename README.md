@@ -1,17 +1,14 @@
 # AppImageXdg
 
-Integrate AppImages into your Linux desktop with automatic desktop entries, icon extraction, and management commands. A Go reimplementation of the original [AppImage Desktop Integrator](https://github.com/8ByteSword/appimage-desktop-integrator) by [8ByteSword](https://github.com/8ByteSword).
+Integrate AppImages into your Linux desktop with automatic desktop entries, icon extraction, and stale entry cleanup.
 
 ## Features
 
 - **Single binary**: Use `AppImageXdg` for all operations
-- **Auto-discovery**: Finds AppImages in the current directory
+- **Stale entry cleanup**: Removes desktop entries whose executables no longer exist
+- **Auto-discovery**: Finds AppImages in the given directory
 - **Atomic desktop entries**: Files never get orphaned if integration fails
-- **Smart Electron detection**: Auto-detects Electron apps needing `--no-sandbox`
 - **Icon extraction**: Extracts and copies icons from AppImages
-- **Case-insensitive matching**: All commands support case-insensitive name matching
-- **Debug mode**: Run AppImages with verbose output, strace, and framework-specific debug flags
-- **Interactive prompts**: Customizable app names
 
 ## Install
 
@@ -30,34 +27,30 @@ go build -ldflags "-X main.version=$(git describe --tags --always)" .
 ## Usage
 
 ```
-AppImageXdg                    Show help
-AppImageXdg status             Show status
-AppImageXdg find               Find AppImages in current directory
-AppImageXdg install [file]     Install AppImage(s) — prompts if no file given
-AppImageXdg list               List integrated AppImages
-AppImageXdg remove <name>      Remove an integrated AppImage
-AppImageXdg run <name>         Run an AppImage with live output
-AppImageXdg debug <name>       Run an AppImage with debug/verbose output
-AppImageXdg desktop            Show .desktop files created
+AppImageXdg [dirPath] [-y]
+
+  dirPath    Directory containing .AppImage files (defaults to current directory)
+  -y         Answer yes to all prompts
+  --version  Show version
+  -h, --help Show help
 ```
+
+AppImageXdg performs two operations:
+
+1. **Cleanup**: Checks all desktop entries in `$XDG_DATA_HOME/applications` and removes any whose `Exec` line points to a non-existent executable.
+2. **Install**: Finds `.AppImage` files in `dirPath` not yet referenced by any desktop entry and creates desktop entries for them.
 
 ### Examples
 
 ```
-# Find AppImages in current directory
-AppImageXdg find
+# Clean up stale entries and install AppImages from current directory
+AppImageXdg
 
-# Install a specific AppImage
-AppImageXdg install ~/Downloads/Firefox.AppImage
+# Same, from a specific directory, answering yes to all prompts
+AppImageXdg ~/Downloads -y
 
-# List integrated AppImages
-AppImageXdg list
-
-# Remove an integration
-AppImageXdg remove Firefox
-
-# Run with debug output
-AppImageXdg debug Firefox
+# Show version
+AppImageXdg --version
 ```
 
 ## XDG Directories
@@ -71,7 +64,7 @@ No configuration file needed.
 
 ## Original Project
 
-This is a Go port of [appimage-desktop-integrator](https://github.com/8ByteSword/appimage-desktop-integrator), a shell script tool by [8ByteSword](https://github.com/8ByteSword) that automates the creation of desktop entries with icons for AppImage applications on Linux.
+This is originally a Go port of [appimage-desktop-integrator](https://github.com/8ByteSword/appimage-desktop-integrator), but there is not much left. It was a good starting point though.
 
 ## License
 

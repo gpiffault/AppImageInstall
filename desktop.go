@@ -81,7 +81,7 @@ func ModifyDesktopContent(desktopContent, appImagePath, iconPath string) string 
 	return out.String()
 }
 
-func ListAppImageDesktopEntries() ([]DesktopEntry, error) {
+func ListAllDesktopEntries() ([]DesktopEntry, error) {
 	var entries []DesktopEntry
 
 	matches, err := filepath.Glob(filepath.Join(applicationsDir(), "*.desktop"))
@@ -91,7 +91,7 @@ func ListAppImageDesktopEntries() ([]DesktopEntry, error) {
 
 	for _, path := range matches {
 		entry := parseDesktopEntry(path)
-		if entry != nil && strings.Contains(strings.ToLower(entry.Exec), ".appimage") {
+		if entry != nil {
 			entries = append(entries, *entry)
 		}
 	}
@@ -125,9 +125,9 @@ func parseDesktopEntry(path string) *DesktopEntry {
 	return entry
 }
 
-func DesktopFileExists(appImageName string) bool {
-	entries, _ := ListAppImageDesktopEntries()
-	baseName := strings.TrimSuffix(appImageName, filepath.Ext(appImageName))
+func IsAppImageReferenced(appImagePath string) bool {
+	entries, _ := ListAllDesktopEntries()
+	baseName := strings.TrimSuffix(filepath.Base(appImagePath), filepath.Ext(appImagePath))
 
 	for _, e := range entries {
 		if strings.Contains(strings.ToLower(e.Exec), strings.ToLower(baseName)) {
@@ -135,24 +135,6 @@ func DesktopFileExists(appImageName string) bool {
 		}
 	}
 	return false
-}
-
-func FindDesktopEntries(searchTerm string) []DesktopEntry {
-	entries, _ := ListAppImageDesktopEntries()
-	term := strings.ToLower(searchTerm)
-
-	var matches []DesktopEntry
-	for _, e := range entries {
-		nameLower := strings.ToLower(e.Name)
-		baseName := strings.ToLower(strings.TrimSuffix(filepath.Base(e.Path), ".desktop"))
-
-		if strings.Contains(nameLower, term) ||
-			nameLower == term ||
-			strings.Contains(baseName, term) {
-			matches = append(matches, e)
-		}
-	}
-	return matches
 }
 
 func RemoveDesktopEntry(entry DesktopEntry) error {
