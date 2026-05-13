@@ -19,23 +19,6 @@ func IsExecutable(path string) bool {
 	return info.Mode()&0111 != 0
 }
 
-func IsElectronApp(mountPoint, name string) bool {
-	if _, err := os.Stat(filepath.Join(mountPoint, "resources", "electron.asar")); err == nil {
-		return true
-	}
-	if _, err := os.Stat(filepath.Join(mountPoint, "chrome-sandbox")); err == nil {
-		return true
-	}
-
-	lower := strings.ToLower(name)
-	for _, p := range []string{"via", "vscode", "discord", "slack", "teams", "obsidian", "element"} {
-		if strings.Contains(lower, p) {
-			return true
-		}
-	}
-	return false
-}
-
 func MountAppImage(path string) (mountPoint string, pid int, err error) {
 	if !IsExecutable(path) {
 		if e := os.Chmod(path, 0755); e != nil {
@@ -168,14 +151,4 @@ func CopyIcon(srcFile, dstDir string) (string, error) {
 	}
 
 	return dstPath, nil
-}
-
-func TestAppImageSandbox(path string) bool {
-	cmd := exec.Command(path, "--help")
-	cmd.Env = append(os.Environ(), "DISPLAY=")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return false
-	}
-	return strings.Contains(string(output), "SUID sandbox helper binary")
 }

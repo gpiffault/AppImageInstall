@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -38,17 +37,6 @@ func main() {
 		cmdList()
 	case "remove", "uninstall", "rm":
 		cmdRemove(args)
-	case "run":
-		cmdRun(args)
-	case "debug":
-		cmdDebug(args)
-	case "desktop", "desktops":
-		cmdDesktop()
-	case "--version", "-v":
-		fmt.Printf("AppImageXdg v%s\n", version)
-	case "--dry-run":
-		fmt.Printf("Dry run mode - would execute: %v\n", os.Args[1:])
-		fmt.Println("Note: Dry run functionality not fully implemented yet")
 	case "help", "-h", "--help", "":
 		showHelp()
 	default:
@@ -67,9 +55,6 @@ Quick Commands:
   AppImageXdg install [file]     Install AppImage(s) - prompts if no file given
   AppImageXdg list               List integrated AppImages
   AppImageXdg remove <n>         Remove an integrated AppImage
-  AppImageXdg run <name>         Run an AppImage with live output
-  AppImageXdg debug <name>       Run an AppImage with debug/verbose output
-  AppImageXdg desktop            Show .desktop files created
   AppImageXdg help               Show detailed help with all options
 
 Examples:
@@ -219,13 +204,6 @@ func processAppImage(appImagePath string) error {
 
 	desktopContent = ModifyDesktopContent(desktopContent, appImagePath, iconPath)
 
-	needsNoSandbox := IsElectronApp(mountPoint, appImagePath) || TestAppImageSandbox(appImagePath)
-	if needsNoSandbox {
-		desktopContent = strings.Replace(desktopContent,
-			fmt.Sprintf(`"%s"`, appImagePath),
-			fmt.Sprintf(`"%s" --no-sandbox`, appImagePath), 1)
-	}
-
 	err = WriteDesktopEntry(desktopContent)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create desktop file: %v\n", err)
@@ -348,174 +326,5 @@ func removeAppImageIntegration(entry DesktopEntry) {
 		}
 	} else {
 		fmt.Println("Removal cancelled.")
-	}
-}
-
-func cmdRun(args []string) {
-	if len(args) == 0 {
-		fmt.Println("Usage: AppImageXdg run <AppName>")
-		fmt.Println()
-		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries()
-		for _, e := range entries {
-			fmt.Printf("  - %s\n", e.Name)
-		}
-		return
-	}
-
-	searchTerm := args[0]
-	entries := FindDesktopEntries(searchTerm)
-
-	for _, e := range entries {
-		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
-			execPath := ExecLineToPath(e.Exec)
-
-			fmt.Printf("Running %s...\n", e.Name)
-			fmt.Println("Press Ctrl+C to stop")
-			fmt.Println(strings.Repeat("=", 40))
-
-			parts := strings.Fields(execPath)
-			if len(parts) == 0 {
-				fmt.Fprintf(os.Stderr, "No executable path found\n")
-				return
-			}
-
-			cmd := exec.Command(parts[0], parts[1:]...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			_ = cmd.Run()
-			return
-		}
-	}
-
-	fmt.Printf("No AppImage found matching: %s\n", searchTerm)
-}
-
-func cmdDebug(args []string) {
-	if len(args) == 0 {
-		fmt.Println("Usage: AppImageXdg debug <AppName>")
-		fmt.Println()
-		fmt.Println("Available AppImages:")
-		entries, _ := ListAppImageDesktopEntries()
-		for _, e := range entries {
-			fmt.Printf("  - %s\n", e.Name)
-		}
-		return
-	}
-
-	searchTerm := args[0]
-	entries := FindDesktopEntries(searchTerm)
-
-	for _, e := range entries {
-		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(searchTerm)) {
-			execPath := ExecLineToPath(e.Exec)
-
-			fmt.Printf("=== Debug Mode for %s ===\n", e.Name)
-			fmt.Printf("AppImage: %s\n", execPath)
-			fmt.Println()
-			fmt.Println("Environment variables that affect AppImages:")
-			fmt.Println("  APPIMAGE_EXTRACT_AND_RUN=1  - Extract and run (for FUSE issues)")
-			fmt.Println("  APPDIR                      - AppImage mount directory")
-			fmt.Println("  APPIMAGE                    - Path to the AppImage")
-			fmt.Println("  APPIMAGE_DEBUG=1            - Enable debug logging in wrapper")
-			fmt.Println("  APPIMAGE_VERBOSE=1          - Enable verbose output")
-			fmt.Println()
-			fmt.Printf("You can also run with environment variables:\n")
-			fmt.Printf("  APPIMAGE_DEBUG=1 AppImageXdg run %s\n", searchTerm)
-			fmt.Println()
-			fmt.Println("Running with verbose output...")
-			fmt.Println("Press Ctrl+C to stop")
-			fmt.Println(strings.Repeat("=", 40))
-
-			nameLower := strings.ToLower(e.Name)
-			var debugFlags []string
-
-			// Electron apps
-			electronPatterns := []string{"via", "vscode", "discord", "slack", "teams", "obsidian", "element"}
-			for _, p := range electronPatterns {
-				if strings.Contains(nameLower, p) {
-					debugFlags = append(debugFlags, "--verbose", "--enable-logging", "--log-level=verbose")
-					fmt.Printf("Detected Electron app, using flags: %v\n", debugFlags)
-					break
-				}
-			}
-
-			// Qt/KDE
-			if strings.Contains(nameLower, "qt") || strings.Contains(nameLower, "kde") {
-				os.Setenv("QT_LOGGING_RULES", "*=true")
-				fmt.Println("Enabled Qt verbose logging")
-			}
-
-			// GTK
-			if strings.Contains(nameLower, "gtk") || strings.Contains(nameLower, "gnome") {
-				os.Setenv("GTK_DEBUG", "all")
-				fmt.Println("Enabled GTK debug output")
-			}
-
-			fmt.Print("Run with strace for system call tracing? (y/n): ")
-			reader := bufio.NewReader(os.Stdin)
-			useStrace, _ := reader.ReadString('\n')
-			useStrace = strings.TrimSpace(strings.ToLower(useStrace))
-
-			if useStrace == "y" || useStrace == "yes" {
-				if _, err := exec.LookPath("strace"); err == nil {
-					fmt.Println("Running with strace...")
-					fmt.Println("Note: strace may cause FUSE mount issues with AppImages.")
-					fmt.Println("If you see 'Cannot mount AppImage', try running without strace.")
-					fmt.Println()
-
-					straceArgs := []string{"-e", "trace=open,openat,access,stat,execve", "-f", execPath}
-					straceArgs = append(straceArgs, debugFlags...)
-
-					cmd := exec.Command("strace", straceArgs...)
-					cmd.Env = append(os.Environ(),
-						"APPIMAGE_EXTRACT_AND_RUN=1",
-					)
-					cmd.Stdin = os.Stdin
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					_ = cmd.Run()
-				} else {
-					fmt.Println("strace not installed. Install with: sudo apt install strace")
-					runAppImageDirect(execPath, debugFlags)
-				}
-			} else {
-				runAppImageDirect(execPath, debugFlags)
-			}
-			return
-		}
-	}
-
-	fmt.Printf("No AppImage found matching: %s\n", searchTerm)
-}
-
-func runAppImageDirect(path string, flags []string) {
-	args := append([]string{path}, flags...)
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
-}
-
-func cmdDesktop() {
-	fmt.Println("Desktop Files for AppImages")
-	fmt.Println("===========================")
-	fmt.Println()
-
-	entries, _ := ListAppImageDesktopEntries()
-	if len(entries) == 0 {
-		fmt.Println("No AppImage desktop files found.")
-		return
-	}
-
-	for _, e := range entries {
-		fmt.Printf("=== %s ===\n", e.Path)
-		data, err := os.ReadFile(e.Path)
-		if err == nil {
-			fmt.Print(string(data))
-		}
-		fmt.Println()
 	}
 }

@@ -62,7 +62,11 @@ func ModifyDesktopContent(desktopContent, appImagePath, iconPath string) string 
 
 		if strings.HasPrefix(line, "Exec=") {
 			val := strings.TrimPrefix(line, "Exec=")
-			val = strings.Replace(val, "AppRun", fmt.Sprintf(`"%s"`, appImagePath), 1)
+			if strings.HasPrefix(val, "AppRun") {
+				val = strings.Replace(val, "AppRun", fmt.Sprintf(`"%s"`, appImagePath), 1)
+			} else {
+				val = fmt.Sprintf(`"%s" %%U`, appImagePath)
+			}
 			line = "Exec=" + val
 		}
 
@@ -167,7 +171,20 @@ func RemoveDesktopEntry(entry DesktopEntry) error {
 }
 
 func ExecLineToPath(execLine string) string {
-	path := strings.Trim(execLine, "\"")
-	path = strings.TrimSuffix(path, " --no-sandbox")
-	return path
+	var result strings.Builder
+	inQuote := false
+	for _, ch := range execLine {
+		if ch == '"' {
+			inQuote = !inQuote
+			continue
+		}
+		if ch == ' ' && !inQuote {
+			if result.Len() > 0 {
+				break
+			}
+			continue
+		}
+		result.WriteRune(ch)
+	}
+	return result.String()
 }
