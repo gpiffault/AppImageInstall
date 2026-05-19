@@ -40,6 +40,13 @@ func main() {
 		}
 	}
 
+	info, err := os.Stat(dirPath)
+	if err == nil && !info.IsDir() && strings.HasSuffix(dirPath, ".AppImage") {
+		cleanupStaleEntries(autoYes)
+		installSingleAppImage(dirPath, autoYes)
+		return
+	}
+
 	cleanupStaleEntries(autoYes)
 	installUnintegratedAppImages(dirPath, autoYes)
 }
@@ -48,16 +55,20 @@ func showHelp() {
 	fmt.Println(`AppImageXdg - Manage AppImage desktop integration
 
 Usage:
-  AppImageXdg [dirPath] [-y]
+  AppImageXdg [path] [-y]
 
-  dirPath    Directory containing .AppImage files (defaults to current directory)
+  path       Directory containing .AppImage files, or a single .AppImage file
+             (defaults to current directory)
   -y         Answer yes to all prompts
   --version  Show version
   -h, --help Show this help
 
 AppImageXdg performs two operations:
   1. Removes stale desktop entries whose executables no longer exist
-  2. Creates desktop entries for AppImage files not yet integrated`)
+  2. Creates desktop entries for AppImage files not yet integrated
+
+When a single .AppImage file is provided, AppImageXdg can optionally move
+it to ~/Applications before integrating.`)
 }
 
 func cleanupStaleEntries(autoYes bool) {
@@ -97,6 +108,36 @@ func installUnintegratedAppImages(dirPath string, autoYes bool) {
 				installAppImage(app)
 			}
 		}
+	}
+}
+
+func installSingleAppImage(appImagePath string, autoYes bool) {
+	if IsAppImageReferenced(appImagePath) {
+		fmt.Printf("Already integrated: %s\n", filepath.Base(appImagePath))
+		return
+	}
+
+	home, _ := os.UserHomeDir()
+	homeApplications := filepath.Join(home, "Applications")
+
+	destPath := appImagePath
+	if filepath.Dir(appImagePath) != homeApplications {
+		fmt.Printf("Not in ~/Applications: %s\n", filepath.Base(appImagePath))
+		if autoYes || promptYesNo("Move it to ~/Applications?") {
+			os.MkdirAll(homeApplications, 0755)
+			newPath := filepath.Join(homeApplications, filepath.Base(appImagePath))
+			if err := os.Rename(appImagePath, newPath); err != nil {
+				fmt.Fprintf(os.Stderr, "  Error moving file: %v\n", err)
+			} else {
+				fmt.Printf("  Moved to %s\n", newPath)
+				destPath = newPath
+			}
+		}
+	}
+
+	fmt.Printf("Unintegrated: %s\n", filepath.Base(destPath))
+	if autoYes || promptYesNo("Install it?") {
+		installAppImage(destPath)
 	}
 }
 
