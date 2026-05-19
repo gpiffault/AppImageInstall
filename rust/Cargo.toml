@@ -1,0 +1,13 @@
+[package]
+name = "appimage-xdg"
+version = "1.2.0"
+edition = "2021"
+description = "Integrate AppImages into your Linux desktop"
+license = "MIT"
+
+[[bin]]
+name = "AppImageXdg"
+path = "src/main.rs"
+
+[dependencies]
+glob = "0.3"
