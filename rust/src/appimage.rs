@@ -148,3 +148,59 @@ pub fn copy_icon(src_file: &str, dst_dir: &str) -> io::Result<String> {
 
     Ok(dst_path.to_string_lossy().to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn test_is_executable_executable_file() {
+        let dir = std::env::temp_dir().join("appimage_xdg_test_exec");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("test_exec");
+        fs::write(&path, "#!/bin/sh\necho test").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(is_executable(&path.to_string_lossy()));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_is_executable_non_executable_file() {
+        let dir = std::env::temp_dir().join("appimage_xdg_test_noexec");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("test_noexec");
+        fs::write(&path, "test").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(!is_executable(&path.to_string_lossy()));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_is_executable_nonexistent() {
+        assert!(!is_executable("/tmp/nonexistent_file_98765"));
+    }
+
+    #[test]
+    fn test_copy_icon() {
+        let dir = std::env::temp_dir().join("appimage_xdg_test_copy");
+        let _ = fs::remove_dir_all(&dir);
+        let src_dir = dir.join("src");
+        let dst_dir = dir.join("dst");
+        fs::create_dir_all(&src_dir).unwrap();
+        let src = src_dir.join("icon.png");
+        fs::write(&src, "fake-icon-data").unwrap();
+        let result = copy_icon(&src.to_string_lossy(), &dst_dir.to_string_lossy()).unwrap();
+        assert_eq!(result, dst_dir.join("icon.png").to_string_lossy().to_string());
+        assert!(dst_dir.join("icon.png").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_copy_icon_empty_src() {
+        let result = copy_icon("", "/tmp/dst").unwrap();
+        assert_eq!(result, "");
+    }
+}

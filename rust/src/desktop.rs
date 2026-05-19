@@ -162,3 +162,87 @@ pub fn exec_line_to_path(exec_line: &str) -> String {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_desktop_field_name() {
+        let content = "[Desktop Entry]\nName=Firefox\nExec=firefox %U\n";
+        assert_eq!(desktop_field(content, "Name"), "Firefox");
+    }
+
+    #[test]
+    fn test_desktop_field_exec() {
+        let content = "[Desktop Entry]\nName=App\nExec=AppRun\n";
+        assert_eq!(desktop_field(content, "Exec"), "AppRun");
+    }
+
+    #[test]
+    fn test_desktop_field_missing() {
+        let content = "[Desktop Entry]\nName=App\n";
+        assert_eq!(desktop_field(content, "Icon"), "");
+    }
+
+    #[test]
+    fn test_desktop_field_empty() {
+        assert_eq!(desktop_field("", "Name"), "");
+    }
+
+    #[test]
+    fn test_modify_desktop_content_apprun() {
+        let content = "[Desktop Entry]\nName=Test App\nExec=AppRun\nIcon=old\nTryExec=old\n";
+        let result = modify_desktop_content(content, "/path/to/app.AppImage", "/path/to/icon.png");
+        assert!(result.contains("Exec=\"/path/to/app.AppImage\""));
+        assert!(!result.contains("AppRun"));
+        assert!(!result.contains("TryExec="));
+        assert!(result.contains("Icon=/path/to/icon.png"));
+        assert!(result.contains("Name=Test App"));
+    }
+
+    #[test]
+    fn test_modify_desktop_content_non_apprun() {
+        let content = "[Desktop Entry]\nName=App\nExec=/usr/bin/app\n";
+        let result = modify_desktop_content(content, "/path/to/app.AppImage", "");
+        assert!(result.contains("Exec=\"/path/to/app.AppImage\" %U"));
+        assert!(!result.contains("/usr/bin/app"));
+    }
+
+    #[test]
+    fn test_modify_desktop_content_keeps_icon_when_empty() {
+        let content = "[Desktop Entry]\nIcon=original\n";
+        let result = modify_desktop_content(content, "/path/to/app.AppImage", "");
+        assert!(result.contains("Icon=original"));
+    }
+
+    #[test]
+    fn test_exec_line_to_path_quoted() {
+        assert_eq!(exec_line_to_path("\"/path/to/app\" --arg"), "/path/to/app");
+    }
+
+    #[test]
+    fn test_exec_line_to_path_unquoted() {
+        assert_eq!(exec_line_to_path("/path/to/app %U"), "/path/to/app");
+    }
+
+    #[test]
+    fn test_exec_line_to_path_no_args() {
+        assert_eq!(exec_line_to_path("/path/to/app"), "/path/to/app");
+    }
+
+    #[test]
+    fn test_exec_line_to_path_apprun() {
+        assert_eq!(exec_line_to_path("AppRun --flag"), "AppRun");
+    }
+
+    #[test]
+    fn test_exec_line_to_path_leading_spaces() {
+        assert_eq!(exec_line_to_path("  /path/to/app"), "/path/to/app");
+    }
+
+    #[test]
+    fn test_exec_line_to_path_empty() {
+        assert_eq!(exec_line_to_path(""), "");
+    }
+}

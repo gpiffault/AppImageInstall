@@ -136,8 +136,7 @@ fn install_single_app_image(app_image_path: &str, auto_yes: bool) {
         return;
     }
 
-    let home = env::var("HOME").unwrap_or_default();
-    let home_applications = format!("{}/Applications", home);
+    let home_applications = install_path();
 
     let mut dest_path = app_image_path.to_string();
     let dir = Path::new(app_image_path)
