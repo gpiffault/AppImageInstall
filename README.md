@@ -21,10 +21,11 @@ cargo install --git https://github.com/gpiffault/AppImageXdg
 ## Usage
 
 ```
-AppImageXdg [path] [-y]
+AppImageXdg [path] [-y] [--gui]
 
   path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
+  --gui      Use GTK dialogs for prompts
   -v, --version  Show version
   -h, --help    Show help
 ```

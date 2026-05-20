@@ -1,6 +1,7 @@
 mod appimage;
 mod config;
 mod desktop;
+mod gui;
 
 use std::env;
 use std::fs;
@@ -13,12 +14,14 @@ use glob::glob;
 use appimage::*;
 use config::*;
 use desktop::*;
+use gui::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let mut auto_yes = false;
+    let mut gui_mode = false;
     let mut dir_path = String::new();
 
     for arg in &args {
@@ -32,6 +35,7 @@ fn main() {
                 return;
             }
             "-y" => auto_yes = true,
+            "--gui" => gui_mode = true,
             _ => {
                 if !arg.starts_with('-') && dir_path.is_empty() {
                     dir_path = arg.clone();
@@ -47,13 +51,13 @@ fn main() {
     }
 
     if is_single_app_image(&dir_path) {
-        cleanup_stale_entries(auto_yes);
-        install_single_app_image(&dir_path, auto_yes);
+        cleanup_stale_entries(auto_yes, gui_mode);
+        install_single_app_image(&dir_path, auto_yes, gui_mode);
         return;
     }
 
-    cleanup_stale_entries(auto_yes);
-    install_unintegrated_app_images(&dir_path, auto_yes);
+    cleanup_stale_entries(auto_yes, gui_mode);
+    install_unintegrated_app_images(&dir_path, auto_yes, gui_mode);
 }
 
 fn is_single_app_image(path: &str) -> bool {
@@ -67,10 +71,11 @@ fn show_help() {
     println!(
         "AppImageXdg - Manage AppImage desktop integration\n\n\
 Usage:\n  \
-  AppImageXdg [path] [-y]\n\n  \
+  AppImageXdg [path] [-y] [--gui]\n\n  \
   path       Directory containing .AppImage files, or a single .AppImage file\n             \
   (defaults to current directory)\n  \
   -y         Answer yes to all prompts\n  \
+  --gui      Use GTK dialogs for prompts\n  \
   -v, --version  Show version\n  \
   -h, --help    Show this help\n\n\
 AppImageXdg performs two operations:\n  \
@@ -81,7 +86,7 @@ it to ~/Applications before integrating."
     );
 }
 
-fn cleanup_stale_entries(auto_yes: bool) {
+fn cleanup_stale_entries(auto_yes: bool, gui_mode: bool) {
     let entries = match list_all_desktop_entries() {
         Ok(e) => e,
         Err(_) => return,
@@ -94,7 +99,7 @@ fn cleanup_stale_entries(auto_yes: bool) {
         }
         if !is_executable(&exec_path) {
             println!("Stale entry: '{}' -> {}", entry.name, exec_path);
-            if auto_yes || prompt_yes_no("Remove this entry?") {
+            if auto_yes || prompt_yes_no("Remove this entry?", gui_mode) {
                 match remove_desktop_entry(entry) {
                     Ok(_) => println!("  Removed."),
                     Err(e) => eprintln!("  Error: {}", e),
@@ -104,7 +109,7 @@ fn cleanup_stale_entries(auto_yes: bool) {
     }
 }
 
-fn install_unintegrated_app_images(dir_path: &str, auto_yes: bool) {
+fn install_unintegrated_app_images(dir_path: &str, auto_yes: bool, gui_mode: bool) {
     let pattern = format!("{}/*.AppImage", dir_path);
     let app_images: Vec<String> = glob(&pattern)
         .unwrap()
@@ -120,14 +125,14 @@ fn install_unintegrated_app_images(dir_path: &str, auto_yes: bool) {
         if !is_appimage_referenced(app) {
             let base = app_base_name(app);
             println!("Unintegrated: {}", base);
-            if auto_yes || prompt_yes_no("Install it?") {
+            if auto_yes || prompt_yes_no("Install it?", gui_mode) {
                 install_app_image(app);
             }
         }
     }
 }
 
-fn install_single_app_image(app_image_path: &str, auto_yes: bool) {
+fn install_single_app_image(app_image_path: &str, auto_yes: bool, gui_mode: bool) {
     if is_appimage_referenced(app_image_path) {
         println!("Already integrated: {}", app_base_name(app_image_path));
         return;
@@ -144,7 +149,7 @@ fn install_single_app_image(app_image_path: &str, auto_yes: bool) {
     if dir != home_applications {
         let base = app_base_name(app_image_path);
         println!("Not in ~/Applications: {}", base);
-        if auto_yes || prompt_yes_no("Move it to ~/Applications?") {
+        if auto_yes || prompt_yes_no("Move it to ~/Applications?", gui_mode) {
             let _ = fs::create_dir_all(&home_applications);
             let new_path = format!("{}/{}", home_applications, base);
             match fs::rename(app_image_path, &new_path) {
@@ -158,7 +163,7 @@ fn install_single_app_image(app_image_path: &str, auto_yes: bool) {
     }
 
     println!("Unintegrated: {}", app_base_name(&dest_path));
-    if auto_yes || prompt_yes_no("Install it?") {
+    if auto_yes || prompt_yes_no("Install it?", gui_mode) {
         install_app_image(&dest_path);
     }
 }
@@ -206,7 +211,12 @@ fn process_app_image(app_image_path: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn prompt_yes_no(prompt: &str) -> bool {
+fn prompt_yes_no(prompt: &str, gui_mode: bool) -> bool {
+    if gui_mode {
+        if let Some(answer) = gui_yes_no(prompt) {
+            return answer;
+        }
+    }
     print!("{} (y/n): ", prompt);
     let _ = io::stdout().flush();
     let stdin = io::stdin();
