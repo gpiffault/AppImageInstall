@@ -88,7 +88,12 @@ fn main() {
             }
         }
 
-        run_gui(entries);
+        let explicit = if is_single_app_image(&dir_path) {
+            Some(dir_path.clone())
+        } else {
+            None
+        };
+        run_gui(entries, explicit);
         return;
     }
 

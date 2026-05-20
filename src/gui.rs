@@ -163,7 +163,7 @@ enum MainWinMsg {
 
 #[relm4::component(pub)]
 impl SimpleComponent for MainWin {
-    type Init = Vec<AppImageEntry>;
+    type Init = (Vec<AppImageEntry>, Option<String>);
     type Input = MainWinMsg;
     type Output = ();
 
@@ -191,7 +191,7 @@ impl SimpleComponent for MainWin {
         let widgets = view_output!();
         let store = ListStore::new::<RowData>();
 
-        let mut entries = init;
+        let (mut entries, explicit_path) = init;
         entries.sort_by(|a, b| {
             a.integrated.cmp(&b.integrated)
                 .then(a.name.cmp(&b.name))
@@ -205,10 +205,13 @@ impl SimpleComponent for MainWin {
         setup_columns(&widgets.column_view, &store, &sender);
         rebuild_store(&model.entries, &store);
 
-        if model.entries.len() == 1 && !model.entries[0].integrated {
-            let name = model.entries[0].name.clone();
-            if gui_yes_no(&format!("Install {}?", name)) {
-                sender.input(MainWinMsg::Toggle(0));
+        if let Some(path) = explicit_path {
+            if let Some(idx) = model.entries.iter().position(|e| e.path == path) {
+                if !model.entries[idx].integrated {
+                    if gui_yes_no(&format!("Install {}?", model.entries[idx].name)) {
+                        sender.input(MainWinMsg::Toggle(idx));
+                    }
+                }
             }
         }
 
@@ -384,10 +387,10 @@ impl MainWin {
     }
 }
 
-pub fn run_gui(entries: Vec<AppImageEntry>) {
+pub fn run_gui(entries: Vec<AppImageEntry>, explicit_path: Option<String>) {
     let args: Vec<String> = std::env::args().take(1).collect();
     let app = RelmApp::new("com.appimagexdg.AppImageXdg").with_args(args);
-    app.run::<MainWin>(entries);
+    app.run::<MainWin>((entries, explicit_path));
 }
 
 #[cfg(test)]
@@ -454,7 +457,7 @@ mod tests {
                 integrated: true,
             },
         ];
-        let connector = MainWin::builder().launch(entries);
+        let connector = MainWin::builder().launch((entries, None));
         {
             let state = connector.state().get();
             assert_eq!(state.model.entries.len(), 2);
