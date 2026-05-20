@@ -8,6 +8,8 @@ use std::io::{self, BufRead, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
+use glob::glob;
+
 use appimage::*;
 use config::*;
 use desktop::*;
@@ -103,17 +105,12 @@ fn cleanup_stale_entries(auto_yes: bool) {
 }
 
 fn install_unintegrated_app_images(dir_path: &str, auto_yes: bool) {
-    let dir = Path::new(dir_path);
-    let mut app_images = Vec::new();
-
-    if let Ok(dir_entries) = fs::read_dir(dir) {
-        for entry in dir_entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) == Some("AppImage") {
-                app_images.push(path.to_string_lossy().to_string());
-            }
-        }
-    }
+    let pattern = format!("{}/*.AppImage", dir_path);
+    let app_images: Vec<String> = glob(&pattern)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|p| p.to_string_lossy().to_string())
+        .collect();
 
     if app_images.is_empty() {
         return;
