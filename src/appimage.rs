@@ -16,11 +16,30 @@ pub struct AppImageMount {
 
 impl Drop for AppImageMount {
     fn drop(&mut self) {
-        let _ = self.child.kill();
+        if let Err(e) = self.child.kill() {
+            eprintln!("Warning: failed to kill AppImage process: {}", e);
+        }
         thread::sleep(Duration::from_millis(500));
-        let _ = self.child.wait();
+        if let Err(e) = self.child.wait() {
+            eprintln!("Warning: failed to wait for AppImage process: {}", e);
+        }
+        let mut unmounted = false;
         for cmd in &["fusermount", "fusermount3"] {
-            let _ = Command::new(cmd).args(["-u", &self.mount_point]).output();
+            match Command::new(cmd).args(["-u", &self.mount_point]).output() {
+                Ok(out) if out.status.success() => {
+                    unmounted = true;
+                    break;
+                }
+                Ok(out) => {
+                    eprintln!("Warning: {} failed on {}: {:?}", cmd, self.mount_point, out.status);
+                }
+                Err(e) => {
+                    eprintln!("Warning: {} not found or failed: {}", cmd, e);
+                }
+            }
+        }
+        if !unmounted {
+            eprintln!("Warning: failed to unmount {}", self.mount_point);
         }
     }
 }
@@ -64,8 +83,6 @@ pub fn mount_appimage(path: &str) -> Result<AppImageMount, String> {
         .stderr(Stdio::null())
         .spawn()
         .map_err(|e| format!("start mount: {}", e))?;
-
-    thread::sleep(Duration::from_secs(1));
 
     let stdout = child.stdout.take().ok_or_else(|| {
         let _ = child.kill();

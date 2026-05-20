@@ -3,7 +3,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::config::applications_dir;
+use crate::config::{applications_dir, icons_dir};
 
 #[derive(Debug)]
 pub struct DesktopEntry {
@@ -113,13 +113,18 @@ fn parse_desktop_entry(path: &Path) -> Option<DesktopEntry> {
 
 pub fn is_appimage_referenced(app_image_path: &str) -> bool {
     let entries = list_all_desktop_entries().unwrap_or_default();
-    let base_name = Path::new(app_image_path)
-        .file_stem()
-        .map(|s| s.to_string_lossy().to_lowercase())
+    let app_file_name = Path::new(app_image_path)
+        .file_name()
+        .map(|s| s.to_string_lossy())
         .unwrap_or_default();
 
     for entry in &entries {
-        if entry.exec.to_lowercase().contains(&base_name) {
+        let exec_path = exec_line_to_path(&entry.exec);
+        let exec_file_name = Path::new(&exec_path)
+            .file_name()
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default();
+        if exec_file_name == app_file_name {
             return true;
         }
     }
@@ -127,9 +132,7 @@ pub fn is_appimage_referenced(app_image_path: &str) -> bool {
 }
 
 pub fn remove_desktop_entry(entry: &DesktopEntry) -> io::Result<()> {
-    if !entry.icon.is_empty()
-        && (entry.icon.contains("AppImageInstall") || entry.icon.contains("/icons/"))
-    {
+    if !entry.icon.is_empty() && entry.icon.starts_with(&icons_dir()) {
         let _ = fs::remove_file(&entry.icon);
     }
 
