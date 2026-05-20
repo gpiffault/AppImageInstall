@@ -45,8 +45,8 @@ mod row_data_imp {
 
     impl ObjectImpl for RowData {
         fn properties() -> &'static [glib::ParamSpec] {
-            use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            use std::sync::LazyLock;
+            static PROPERTIES: LazyLock<Vec<glib::ParamSpec>> = LazyLock::new(|| {
                 vec![
                     glib::ParamSpecString::builder("name").construct().build(),
                     glib::ParamSpecString::builder("path").construct().build(),
@@ -207,10 +207,9 @@ impl SimpleComponent for MainWin {
 
         if let Some(path) = explicit_path {
             if let Some(idx) = model.entries.iter().position(|e| e.path == path) {
-                if !model.entries[idx].integrated {
-                    if gui_yes_no(&format!("Install {}?", model.entries[idx].name)) {
-                        sender.input(MainWinMsg::Toggle(idx));
-                    }
+                if !model.entries[idx].integrated && gui_yes_no(&format!("Install {}?", model.entries[idx].name))
+                {
+                    sender.input(MainWinMsg::Toggle(idx));
                 }
             }
         }
@@ -340,13 +339,13 @@ impl MainWin {
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        if parent != home_apps {
-            if gui_yes_no(&format!("Move {} to {}?", entry.name, home_apps)) {
-                let _ = std::fs::create_dir_all(&home_apps);
-                let new_path = format!("{}/{}", home_apps, entry.name);
-                if std::fs::rename(&entry.path, &new_path).is_ok() {
-                    path = new_path;
-                }
+        if parent != home_apps
+            && gui_yes_no(&format!("Move {} to {}?", entry.name, home_apps))
+        {
+            let _ = std::fs::create_dir_all(&home_apps);
+            let new_path = format!("{}/{}", home_apps, entry.name);
+            if std::fs::rename(&entry.path, &new_path).is_ok() {
+                path = new_path;
             }
         }
 
@@ -361,14 +360,19 @@ impl MainWin {
 
     fn do_remove(&mut self, idx: usize) {
         let entry = &self.entries[idx];
-        let base_stem = Path::new(&entry.path)
-            .file_stem()
-            .map(|s| s.to_string_lossy().to_string())
+        let app_file_name = Path::new(&entry.path)
+            .file_name()
+            .map(|s| s.to_string_lossy())
             .unwrap_or_default();
 
         let desktop_entries = list_all_desktop_entries().unwrap_or_default();
         let to_remove = desktop_entries.iter().find(|de| {
-            de.exec.to_lowercase().contains(&base_stem.to_lowercase())
+            let exec_path = exec_line_to_path(&de.exec);
+            Path::new(&exec_path)
+                .file_name()
+                .map(|s| s.to_string_lossy())
+                .as_deref()
+                == Some(&app_file_name)
         });
 
         if let Some(de) = to_remove {

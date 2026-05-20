@@ -1,13 +1,13 @@
-use std::env;
 use std::fs;
 use std::io::{self, BufRead, BufReader};
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::Duration;
 
 use glob::glob;
+use which::which;
 
 pub struct AppImageMount {
     pub child: Child,
@@ -49,26 +49,7 @@ pub fn is_executable(path: &str) -> bool {
         return meta.permissions().mode() & 0o111 != 0;
     }
 
-    if !path.contains(std::path::MAIN_SEPARATOR) && look_path(path).is_some() {
-        return true;
-    }
-
-    false
-}
-
-fn look_path(name: &str) -> Option<PathBuf> {
-    let path_var = env::var("PATH").ok()?;
-    for dir in path_var.split(':') {
-        let full = Path::new(dir).join(name);
-        if full.is_file() {
-            if let Ok(meta) = fs::metadata(&full) {
-                if meta.permissions().mode() & 0o111 != 0 {
-                    return Some(full);
-                }
-            }
-        }
-    }
-    None
+    !path.contains(std::path::MAIN_SEPARATOR) && which(path).is_ok()
 }
 
 pub fn mount_appimage(path: &str) -> Result<AppImageMount, String> {

@@ -59,31 +59,38 @@ fn main() {
             }]
         } else {
             let pattern = format!("{}/*.AppImage", dir_path);
-            glob(&pattern)
-                .unwrap()
-                .filter_map(|e| e.ok())
-                .map(|p| {
-                    let p = p.to_string_lossy().to_string();
-                    AppImageEntry {
-                        integrated: is_appimage_referenced(&p),
-                        name: app_base_name(&p),
-                        path: p,
-                    }
-                })
-                .collect()
+            match glob(&pattern) {
+                Ok(paths) => paths
+                    .filter_map(|e| e.ok())
+                    .map(|p| {
+                        let p = p.to_string_lossy().to_string();
+                        AppImageEntry {
+                            integrated: is_appimage_referenced(&p),
+                            name: app_base_name(&p),
+                            path: p,
+                        }
+                    })
+                    .collect(),
+                Err(e) => {
+                    eprintln!("Error scanning directory: {}", e);
+                    Vec::new()
+                }
+            }
         };
 
         let home_apps = install_path();
         if home_apps != dir_path {
             let pattern = format!("{}/*.AppImage", home_apps);
-            for p in glob(&pattern).unwrap().filter_map(|e| e.ok()) {
-                let p = p.to_string_lossy().to_string();
-                if !entries.iter().any(|e| e.path == p) {
-                    entries.push(AppImageEntry {
-                        integrated: is_appimage_referenced(&p),
-                        name: app_base_name(&p),
-                        path: p,
-                    });
+            if let Ok(paths) = glob(&pattern) {
+                for p in paths.filter_map(|e| e.ok()) {
+                    let p = p.to_string_lossy().to_string();
+                    if !entries.iter().any(|e| e.path == p) {
+                        entries.push(AppImageEntry {
+                            integrated: is_appimage_referenced(&p),
+                            name: app_base_name(&p),
+                            path: p,
+                        });
+                    }
                 }
             }
         }
@@ -158,11 +165,13 @@ fn cleanup_stale_entries(auto_yes: bool) {
 
 fn install_unintegrated_app_images(dir_path: &str, auto_yes: bool) {
     let pattern = format!("{}/*.AppImage", dir_path);
-    let app_images: Vec<String> = glob(&pattern)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|p| p.to_string_lossy().to_string())
-        .collect();
+    let app_images: Vec<String> = match glob(&pattern) {
+        Ok(paths) => paths.filter_map(|e| e.ok()).map(|p| p.to_string_lossy().to_string()).collect(),
+        Err(e) => {
+            eprintln!("Error scanning directory: {}", e);
+            return;
+        }
+    };
 
     if app_images.is_empty() {
         return;

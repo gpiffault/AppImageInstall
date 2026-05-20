@@ -1,13 +1,16 @@
 use std::io;
 
+fn home_dir() -> String {
+    std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string())
+}
+
 pub fn xdg_data_home() -> String {
     if let Ok(dir) = std::env::var("XDG_DATA_HOME") {
         if !dir.is_empty() {
             return dir;
         }
     }
-    let home = std::env::var("HOME").unwrap_or_default();
-    format!("{}/.local/share", home)
+    format!("{}/.local/share", home_dir())
 }
 
 pub fn icons_dir() -> String {
@@ -24,8 +27,7 @@ pub fn install_path() -> String {
             return dir;
         }
     }
-    let home = std::env::var("HOME").unwrap_or_default();
-    format!("{}/Applications", home)
+    format!("{}/Applications", home_dir())
 }
 
 pub fn ensure_dirs() -> io::Result<()> {
