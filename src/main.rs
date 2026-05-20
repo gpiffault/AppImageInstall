@@ -23,7 +23,7 @@ fn main() {
 
     for arg in &args {
         match arg.as_str() {
-            "--version" => {
+            "-v" | "--version" => {
                 println!("AppImageXdg version {}", VERSION);
                 return;
             }
@@ -71,8 +71,8 @@ Usage:\n  \
   path       Directory containing .AppImage files, or a single .AppImage file\n             \
   (defaults to current directory)\n  \
   -y         Answer yes to all prompts\n  \
-  --version  Show version\n  \
-  -h, --help Show this help\n\n\
+  -v, --version  Show version\n  \
+  -h, --help    Show this help\n\n\
 AppImageXdg performs two operations:\n  \
   1. Removes stale desktop entries whose executables no longer exist\n  \
   2. Creates desktop entries for AppImage files not yet integrated\n\n\

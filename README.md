@@ -25,8 +25,8 @@ AppImageXdg [path] [-y]
 
   path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
-  --version  Show version
-  -h, --help Show help
+  -v, --version  Show version
+  -h, --help    Show help
 ```
 
 If **path** is a directory, AppImageXdg scans for `.AppImage` files and creates
@@ -58,12 +58,15 @@ cd AppImageXdg
 cargo build --release
 ```
 
-## XDG Directories
+## Directories
 
 AppImageXdg uses standard [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) paths (respects `$XDG_DATA_HOME`, falls back to `~/.local/share`):
 
 - `$XDG_DATA_HOME/applications/` — `.desktop` entries
 - `$XDG_DATA_HOME/icons/AppImageXdg/` — extracted icons
+
+`APPIMAGE_INSTALL_PATH` controls where single `.AppImage` files are moved to
+during integration (default: `$HOME/Applications`).
 
 ## Original Project
 
