@@ -21,18 +21,21 @@ cargo install --git https://github.com/gpiffault/AppImageXdg
 ## Usage
 
 ```
-AppImageXdg [dirPath] [-y]
+AppImageXdg [path] [-y]
 
-  dirPath    Directory containing .AppImage files (defaults to current directory)
+  path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
   --version  Show version
   -h, --help Show help
 ```
 
-AppImageXdg performs two operations:
+If **path** is a directory, AppImageXdg scans for `.AppImage` files and creates
+desktop entries for any not yet integrated. It also removes stale desktop entries
+whose executables no longer exist.
 
-1. **Install**: Finds `.AppImage` files in `dirPath` not yet referenced by any desktop entry and creates desktop entries for them.
-2. **Cleanup**: Checks all desktop entries in `$XDG_DATA_HOME/applications` and removes any whose `Exec` line points to a non-existent executable.
+If **path** is an `.AppImage` file, it offers to move the file to `~/Applications`
+(or `$APPIMAGE_INSTALL_PATH`) if not already there, then creates a desktop entry
+for it.
 
 ### Examples
 
@@ -42,6 +45,9 @@ AppImageXdg
 
 # Same, from a specific directory, answering yes to all prompts
 AppImageXdg ~/Applications -y
+
+# Integrate a single AppImage (optionally moving it to ~/Applications first)
+AppImageXdg ./some-app.AppImage -y
 ```
 
 ## Build
