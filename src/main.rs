@@ -51,7 +51,7 @@ fn main() {
     }
 
     if gui_mode {
-        let entries = if is_single_app_image(&dir_path) {
+        let mut entries: Vec<AppImageEntry> = if is_single_app_image(&dir_path) {
             vec![AppImageEntry {
                 path: dir_path.clone(),
                 name: app_base_name(&dir_path),
@@ -72,6 +72,22 @@ fn main() {
                 })
                 .collect()
         };
+
+        let home_apps = install_path();
+        if home_apps != dir_path {
+            let pattern = format!("{}/*.AppImage", home_apps);
+            for p in glob(&pattern).unwrap().filter_map(|e| e.ok()) {
+                let p = p.to_string_lossy().to_string();
+                if !entries.iter().any(|e| e.path == p) {
+                    entries.push(AppImageEntry {
+                        integrated: is_appimage_referenced(&p),
+                        name: app_base_name(&p),
+                        path: p,
+                    });
+                }
+            }
+        }
+
         run_gui(entries);
         return;
     }
