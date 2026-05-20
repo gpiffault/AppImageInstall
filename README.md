@@ -1,4 +1,4 @@
-# AppImageXdg
+# AppImageInstall
 
 Integrate AppImages into your Linux desktop with automatic desktop entries, icon extraction, and stale entry cleanup.
 
@@ -10,18 +10,18 @@ Integrate AppImages into your Linux desktop with automatic desktop entries, icon
 
 ## Install
 
-Download a release from https://github.com/gpiffault/AppImageXdg/releases
+Download a release from https://github.com/gpiffault/AppImageInstall/releases
 
 Or build from source with the Rust toolchain:
 
 ```sh
-cargo install --git https://github.com/gpiffault/AppImageXdg
+cargo install --git https://github.com/gpiffault/AppImageInstall
 ```
 
 ## Usage
 
 ```
-AppImageXdg [path] [-y] [--gui]
+AppImageInstall [path] [-y] [--gui]
 
   path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
@@ -40,8 +40,9 @@ If **path** is an `.AppImage` file, it offers to move it to `~/Applications`
 
 ### GUI mode (`--gui`)
 
-Opens a window listing all `.AppImage` files found in **path**. Each entry shows
-an **Install** or **Remove** button depending on whether it already has a desktop entry.
+Opens a window listing all `.AppImage` files found in **path** and `~/Applications`.
+Each entry shows an **Install** or **Remove** button depending on whether it already
+has a desktop entry.
 
 - **Install**: offers to move the file to `~/Applications` first, then creates the
   desktop entry and extracts its icon.
@@ -53,26 +54,26 @@ When launched with a single `.AppImage` file, an install prompt opens automatica
 
 ```
 # Clean up stale entries and install AppImages from current directory
-AppImageXdg
+AppImageInstall
 
 # Same, from a specific directory, answering yes to all prompts
-AppImageXdg ~/Applications -y
+AppImageInstall ~/Applications -y
 
 # Integrate a single AppImage (optionally moving it to ~/Applications first)
-AppImageXdg ./some-app.AppImage -y
+AppImageInstall ./some-app.AppImage -y
 
 # Open the graphical interface for a directory
-AppImageXdg ~/Downloads --gui
+AppImageInstall ~/Downloads --gui
 
 # Open the graphical interface for a single file
-AppImageXdg ./some-app.AppImage --gui
+AppImageInstall ./some-app.AppImage --gui
 ```
 
 ## Build
 
 ```sh
-git clone https://github.com/gpiffault/AppImageXdg.git
-cd AppImageXdg
+git clone https://github.com/gpiffault/AppImageInstall.git
+cd AppImageInstall
 cargo build --release
 ```
 
@@ -90,10 +91,10 @@ sudo dnf install gtk4-devel graphene-devel
 
 ## Directories
 
-AppImageXdg uses standard [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) paths (respects `$XDG_DATA_HOME`, falls back to `~/.local/share`):
+AppImageInstall uses standard [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) paths (respects `$XDG_DATA_HOME`, falls back to `~/.local/share`):
 
 - `$XDG_DATA_HOME/applications/` — `.desktop` entries
-- `$XDG_DATA_HOME/icons/AppImageXdg/` — extracted icons
+- `$XDG_DATA_HOME/icons/AppImageInstall/` — extracted icons
 
 `APPIMAGE_INSTALL_PATH` controls where single `.AppImage` files are moved to
 during integration (default: `$HOME/Applications`).

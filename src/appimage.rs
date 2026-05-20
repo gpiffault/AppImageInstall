@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_is_executable_executable_file() {
-        let dir = std::env::temp_dir().join("appimage_xdg_test_exec");
+        let dir = std::env::temp_dir().join("appimage_install_test_exec");
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test_exec");
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_is_executable_non_executable_file() {
-        let dir = std::env::temp_dir().join("appimage_xdg_test_noexec");
+        let dir = std::env::temp_dir().join("appimage_install_test_noexec");
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test_noexec");
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_copy_icon() {
-        let dir = std::env::temp_dir().join("appimage_xdg_test_copy");
+        let dir = std::env::temp_dir().join("appimage_install_test_copy");
         let _ = fs::remove_dir_all(&dir);
         let src_dir = dir.join("src");
         let dst_dir = dir.join("dst");

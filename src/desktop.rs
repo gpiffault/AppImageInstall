@@ -128,7 +128,7 @@ pub fn is_appimage_referenced(app_image_path: &str) -> bool {
 
 pub fn remove_desktop_entry(entry: &DesktopEntry) -> io::Result<()> {
     if !entry.icon.is_empty()
-        && (entry.icon.contains("AppImageXdg") || entry.icon.contains("/icons/"))
+        && (entry.icon.contains("AppImageInstall") || entry.icon.contains("/icons/"))
     {
         let _ = fs::remove_file(&entry.icon);
     }

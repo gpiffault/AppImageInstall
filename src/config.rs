@@ -11,7 +11,7 @@ pub fn xdg_data_home() -> String {
 }
 
 pub fn icons_dir() -> String {
-    format!("{}/icons/AppImageXdg", xdg_data_home())
+    format!("{}/icons/AppImageInstall", xdg_data_home())
 }
 
 pub fn applications_dir() -> String {

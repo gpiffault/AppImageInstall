@@ -14,7 +14,7 @@ struct TestEnv {
 
 impl TestEnv {
     fn new(name: &str) -> Self {
-        let dir = std::env::temp_dir().join(format!("appimage_xdg_int_{}", name));
+        let dir = std::env::temp_dir().join(format!("appimage_install_int_{}", name));
         let _ = fs::remove_dir_all(&dir);
 
         let home = dir.join("home");
@@ -23,7 +23,7 @@ impl TestEnv {
         let appimages_dir = dir.join("appimages");
 
         let apps_dir = data_home.join("applications");
-        let icons_dir = data_home.join("icons").join("AppImageXdg");
+        let icons_dir = data_home.join("icons").join("AppImageInstall");
 
         for d in &[&home, &apps_dir, &icons_dir, &install_path, &appimages_dir] {
             fs::create_dir_all(d).unwrap();
@@ -72,15 +72,15 @@ EOF\n\
     }
 
     fn binary_path() -> PathBuf {
-        if let Ok(p) = env::var("CARGO_BIN_EXE_AppImageXdg") {
+        if let Ok(p) = env::var("CARGO_BIN_EXE_AppImageInstall") {
             let pb = PathBuf::from(&p);
             if pb.exists() { return pb; }
         }
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         if cfg!(debug_assertions) {
-            manifest.join("target/debug/AppImageXdg")
+            manifest.join("target/debug/AppImageInstall")
         } else {
-            manifest.join("target/release/AppImageXdg")
+            manifest.join("target/release/AppImageInstall")
         }
     }
 
@@ -109,7 +109,7 @@ EOF\n\
     }
 
     fn icon_files(&self) -> Vec<PathBuf> {
-        let icons_dir = self.data_home.join("icons").join("AppImageXdg");
+        let icons_dir = self.data_home.join("icons").join("AppImageInstall");
         if !icons_dir.exists() {
             return vec![];
         }

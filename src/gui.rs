@@ -103,7 +103,7 @@ fn gui_yes_no(question: &str) -> bool {
     let (tx, rx) = mpsc::channel();
 
     let window = Window::builder()
-        .title("AppImageXdg")
+        .title("AppImageInstall")
         .default_width(350)
         .default_height(150)
         .modal(true)
@@ -169,7 +169,7 @@ impl SimpleComponent for MainWin {
 
     view! {
         Window {
-            set_title: Some("AppImageXdg"),
+            set_title: Some("AppImageInstall"),
             set_default_width: 700,
             set_default_height: 450,
 
@@ -389,7 +389,7 @@ impl MainWin {
 
 pub fn run_gui(entries: Vec<AppImageEntry>, explicit_path: Option<String>) {
     let args: Vec<String> = std::env::args().take(1).collect();
-    let app = RelmApp::new("com.appimagexdg.AppImageXdg").with_args(args);
+    let app = RelmApp::new("com.appimageinstall.AppImageInstall").with_args(args);
     app.run::<MainWin>((entries, explicit_path));
 }
 

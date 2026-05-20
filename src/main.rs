@@ -27,7 +27,7 @@ fn main() {
     for arg in &args {
         match arg.as_str() {
             "-v" | "--version" => {
-                println!("AppImageXdg version {}", VERSION);
+                println!("AppImageInstall version {}", VERSION);
                 return;
             }
             "-h" | "--help" => {
@@ -116,19 +116,19 @@ fn is_single_app_image(path: &str) -> bool {
 
 fn show_help() {
     println!(
-        "AppImageXdg - Manage AppImage desktop integration\n\n\
+        "AppImageInstall - Manage AppImage desktop integration\n\n\
 Usage:\n  \
-  AppImageXdg [path] [-y] [--gui]\n\n  \
+  AppImageInstall [path] [-y] [--gui]\n\n  \
   path       Directory containing .AppImage files, or a single .AppImage file\n             \
-  (defaults to current directory)\n  \
+   (defaults to current directory)\n  \
   -y         Answer yes to all prompts\n  \
   --gui      Open the graphical interface\n  \
   -v, --version  Show version\n  \
   -h, --help    Show this help\n\n\
-AppImageXdg performs two operations:\n  \
-  1. Removes stale desktop entries whose executables no longer exist\n  \
-  2. Creates desktop entries for AppImage files not yet integrated\n\n\
-When a single .AppImage file is provided, AppImageXdg can optionally move\n\
+AppImageInstall performs two operations:\n  \
+   1. Removes stale desktop entries whose executables no longer exist\n  \
+   2. Creates desktop entries for AppImage files not yet integrated\n\n\
+When a single .AppImage file is provided, AppImageInstall can optionally move\n\
 it to ~/Applications before integrating."
     );
 }
