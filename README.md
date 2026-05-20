@@ -10,12 +10,12 @@ Integrate AppImages into your Linux desktop with automatic desktop entries, icon
 
 ## Install
 
-Download a release https://github.com/gpiffault/AppImageXdg/releases
+Download a release from https://github.com/gpiffault/AppImageXdg/releases
 
-Or with the go toolchain:
+Or build from source with the Rust toolchain:
 
 ```sh
-go install github.com/gpiffault/AppImageXdg@latest
+cargo install --git https://github.com/gpiffault/AppImageXdg
 ```
 
 ## Usage
@@ -49,7 +49,7 @@ AppImageXdg ~/Applications -y
 ```sh
 git clone https://github.com/gpiffault/AppImageXdg.git
 cd AppImageXdg
-go build -ldflags "-X main.version=$(git describe --tags --always)" .
+cargo build --release
 ```
 
 ## XDG Directories
@@ -61,7 +61,7 @@ AppImageXdg uses standard [XDG](https://specifications.freedesktop.org/basedir-s
 
 ## Original Project
 
-This is originally a Go port of [appimage-desktop-integrator](https://github.com/8ByteSword/appimage-desktop-integrator), but there is not much left. It was a good starting point though.
+This is originally a Go then Rust port of [appimage-desktop-integrator](https://github.com/8ByteSword/appimage-desktop-integrator), but there is not much left. It was a good starting point though.
 
 ## License
 
