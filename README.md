@@ -25,18 +25,29 @@ AppImageXdg [path] [-y] [--gui]
 
   path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
-  --gui      Use GTK dialogs for prompts
+  --gui      Open the graphical interface
   -v, --version  Show version
   -h, --help    Show help
 ```
 
-If **path** is a directory, AppImageXdg scans for `.AppImage` files and creates
-desktop entries for any not yet integrated. It also removes stale desktop entries
-whose executables no longer exist.
+### Terminal mode (default)
 
-If **path** is an `.AppImage` file, it offers to move the file to `~/Applications`
-(or `$APPIMAGE_INSTALL_PATH`) if not already there, then creates a desktop entry
-for it.
+Scans **path** for `.AppImage` files, creates desktop entries for unintegrated ones,
+and cleans up stale entries whose executables no longer exist.
+
+If **path** is an `.AppImage` file, it offers to move it to `~/Applications`
+(or `$APPIMAGE_INSTALL_PATH`) then creates a desktop entry.
+
+### GUI mode (`--gui`)
+
+Opens a window listing all `.AppImage` files found in **path**. Each entry shows
+an **Install** or **Remove** button depending on whether it already has a desktop entry.
+
+- **Install**: offers to move the file to `~/Applications` first, then creates the
+  desktop entry and extracts its icon.
+- **Remove**: removes the desktop entry and offers to delete the `.AppImage` file.
+
+When launched with a single `.AppImage` file, an install prompt opens automatically.
 
 ### Examples
 
@@ -49,6 +60,12 @@ AppImageXdg ~/Applications -y
 
 # Integrate a single AppImage (optionally moving it to ~/Applications first)
 AppImageXdg ./some-app.AppImage -y
+
+# Open the graphical interface for a directory
+AppImageXdg ~/Downloads --gui
+
+# Open the graphical interface for a single file
+AppImageXdg ./some-app.AppImage --gui
 ```
 
 ## Build
@@ -57,6 +74,18 @@ AppImageXdg ./some-app.AppImage -y
 git clone https://github.com/gpiffault/AppImageXdg.git
 cd AppImageXdg
 cargo build --release
+```
+
+The GUI requires GTK4 development libraries. On Debian/Ubuntu:
+
+```sh
+sudo apt install libgtk-4-dev libgraphene-1.0-dev
+```
+
+On Fedora:
+
+```sh
+sudo dnf install gtk4-devel graphene-devel
 ```
 
 ## Directories
