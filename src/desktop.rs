@@ -111,6 +111,20 @@ fn parse_desktop_entry(path: &Path) -> Option<DesktopEntry> {
     Some(entry)
 }
 
+pub fn is_self_installed() -> bool {
+    let exe_path = match std::env::current_exe() {
+        Ok(p) => p.to_string_lossy().to_string(),
+        Err(_) => return true,
+    };
+    let entries = list_all_desktop_entries().unwrap_or_default();
+    for entry in &entries {
+        if exec_line_to_path(&entry.exec) == exe_path {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn is_appimage_referenced(app_image_path: &str) -> bool {
     let entries = list_all_desktop_entries().unwrap_or_default();
     let app_file_name = Path::new(app_image_path)

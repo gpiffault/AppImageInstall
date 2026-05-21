@@ -154,16 +154,18 @@ fn gui_yes_no(question: &str) -> bool {
 struct MainWin {
     entries: Vec<AppImageEntry>,
     store: ListStore,
+    banner: gtk4::Box,
 }
 
 #[derive(Debug)]
 enum MainWinMsg {
     Toggle(usize),
+    AddSelfDesktopEntry,
 }
 
 #[relm4::component(pub)]
 impl SimpleComponent for MainWin {
-    type Init = (Vec<AppImageEntry>, Option<String>);
+    type Init = (Vec<AppImageEntry>, Option<String>, bool);
     type Input = MainWinMsg;
     type Output = ();
 
@@ -173,11 +175,41 @@ impl SimpleComponent for MainWin {
             set_default_width: 700,
             set_default_height: 450,
 
-            ScrolledWindow {
-                #[name = "column_view"]
-                ColumnView {
+            #[name = "main_box"]
+            GtkBox {
+                set_orientation: gtk4::Orientation::Vertical,
+
+                #[name = "banner"]
+                GtkBox {
+                    set_spacing: 12,
+                    set_margin_all: 8,
+                    add_css_class: "banner",
+
+                    Label {
+                        set_text: "AppImageInstall is not yet integrated into your desktop.",
+                        set_hexpand: true,
+                        set_halign: Align::Start,
+                        set_wrap: true,
+                    },
+
+                    #[name = "banner_button"]
+                    Button {
+                        set_label: "Add to desktop",
+                        add_css_class: "suggested-action",
+                        set_halign: Align::End,
+                        connect_clicked => MainWinMsg::AddSelfDesktopEntry,
+                    },
+                },
+
+                ScrolledWindow {
                     set_vexpand: true,
                     set_hexpand: true,
+
+                    #[name = "column_view"]
+                    ColumnView {
+                        set_vexpand: true,
+                        set_hexpand: true,
+                    },
                 },
             },
         }
@@ -191,15 +223,20 @@ impl SimpleComponent for MainWin {
         let widgets = view_output!();
         let store = ListStore::new::<RowData>();
 
-        let (mut entries, explicit_path) = init;
+        let (mut entries, explicit_path, self_installed) = init;
         entries.sort_by(|a, b| {
             a.integrated.cmp(&b.integrated)
                 .then(a.name.cmp(&b.name))
         });
 
+        if self_installed {
+            widgets.banner.set_visible(false);
+        }
+
         let model = MainWin {
             entries,
             store: store.clone(),
+            banner: widgets.banner.clone(),
         };
 
         setup_columns(&widgets.column_view, &store, &sender);
@@ -218,16 +255,22 @@ impl SimpleComponent for MainWin {
     }
 
     fn update(&mut self, message: Self::Input, _sender: ComponentSender<Self>) {
-        let MainWinMsg::Toggle(idx) = message;
-        if idx >= self.entries.len() {
-            return;
+        match message {
+            MainWinMsg::Toggle(idx) => {
+                if idx >= self.entries.len() {
+                    return;
+                }
+                if self.entries[idx].integrated {
+                    self.do_remove(idx);
+                } else {
+                    self.do_install(idx);
+                }
+                rebuild_store(&self.entries, &self.store);
+            }
+            MainWinMsg::AddSelfDesktopEntry => {
+                self.add_self_desktop_entry();
+            }
         }
-        if self.entries[idx].integrated {
-            self.do_remove(idx);
-        } else {
-            self.do_install(idx);
-        }
-        rebuild_store(&self.entries, &self.store);
     }
 }
 
@@ -389,12 +432,60 @@ impl MainWin {
 
         self.entries[idx].integrated = false;
     }
+
+    fn add_self_desktop_entry(&mut self) {
+        let exe_path = match std::env::current_exe() {
+            Ok(p) => p.to_string_lossy().to_string(),
+            Err(_) => return,
+        };
+
+        let exe_name = Path::new(&exe_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "AppImageInstall".to_string());
+
+        let home_apps = install_path();
+        let parent = Path::new(&exe_path)
+            .parent()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        let mut target_path = exe_path.clone();
+
+        if parent != home_apps {
+            if gui_yes_no(&format!("Move {} to {}?", exe_name, home_apps)) {
+                let _ = std::fs::create_dir_all(&home_apps);
+                let new_path = format!("{}/{}", home_apps, exe_name);
+                if std::fs::rename(&exe_path, &new_path).is_ok() {
+                    target_path = new_path;
+                }
+            }
+        }
+
+        let content = format!(
+            "[Desktop Entry]\n\
+             Type=Application\n\
+             Name=AppImageInstall\n\
+             Exec=\"{}\" %U\n\
+             MimeType=application/x-pie-executable;application/x-appimage;application/x-executable;\n\
+             Icon=system-software-install\n",
+            target_path
+        );
+
+        if ensure_dirs().is_ok() {
+            if write_desktop_entry(&content).is_ok() {
+                self.banner.set_visible(false);
+            } else {
+                gui_yes_no("Failed to create desktop entry.");
+            }
+        }
+    }
 }
 
-pub fn run_gui(entries: Vec<AppImageEntry>, explicit_path: Option<String>) {
+pub fn run_gui(entries: Vec<AppImageEntry>, explicit_path: Option<String>, self_installed: bool) {
     let args: Vec<String> = std::env::args().take(1).collect();
     let app = RelmApp::new("com.appimageinstall.AppImageInstall").with_args(args);
-    app.run::<MainWin>((entries, explicit_path));
+    app.run::<MainWin>((entries, explicit_path, self_installed));
 }
 
 #[cfg(test)]
@@ -461,7 +552,7 @@ mod tests {
                 integrated: true,
             },
         ];
-        let connector = MainWin::builder().launch((entries, None));
+        let connector = MainWin::builder().launch((entries, None, false));
         {
             let state = connector.state().get();
             assert_eq!(state.model.entries.len(), 2);

@@ -111,7 +111,8 @@ fn main() {
     } else {
         None
     };
-    run_gui(entries, explicit);
+    let self_installed = is_self_installed();
+    run_gui(entries, explicit, self_installed);
 }
 
 fn is_single_app_image(path: &str) -> bool {
