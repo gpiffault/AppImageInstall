@@ -21,24 +21,16 @@ cargo install --git https://github.com/gpiffault/AppImageInstall
 ## Usage
 
 ```
-AppImageInstall [path] [-y] [--gui]
+AppImageInstall [path] [-y] [--cli]
 
   path       Directory or .AppImage file (defaults to current directory)
   -y         Answer yes to all prompts
-  --gui      Open the graphical interface
+  --cli      Run in command-line mode (default: GUI mode)
   -v, --version  Show version
   -h, --help    Show help
 ```
 
-### Terminal mode (default)
-
-Scans **path** for `.AppImage` files, creates desktop entries for unintegrated ones,
-and cleans up stale entries whose executables no longer exist.
-
-If **path** is an `.AppImage` file, it offers to move it to `~/Applications`
-(or `$APPIMAGE_INSTALL_PATH`) then creates a desktop entry.
-
-### GUI mode (`--gui`)
+### GUI mode (default)
 
 Opens a window listing all `.AppImage` files found in **path** and `~/Applications`.
 Each entry shows an **Install** or **Remove** button depending on whether it already
@@ -50,23 +42,34 @@ has a desktop entry.
 
 When launched with a single `.AppImage` file, an install prompt opens automatically.
 
+### CLI mode (`--cli`)
+
+Scans **path** for `.AppImage` files, creates desktop entries for unintegrated ones,
+and cleans up stale entries whose executables no longer exist.
+
+If **path** is an `.AppImage` file, it offers to move it to `~/Applications`
+(or `$APPIMAGE_INSTALL_PATH`) then creates a desktop entry.
+
 ### Examples
 
 ```
-# Clean up stale entries and install AppImages from current directory
+# Open the graphical interface (default)
 AppImageInstall
 
-# Same, from a specific directory, answering yes to all prompts
-AppImageInstall ~/Applications -y
-
-# Integrate a single AppImage (optionally moving it to ~/Applications first)
-AppImageInstall ./some-app.AppImage -y
-
 # Open the graphical interface for a directory
-AppImageInstall ~/Downloads --gui
+AppImageInstall ~/Downloads
 
 # Open the graphical interface for a single file
-AppImageInstall ./some-app.AppImage --gui
+AppImageInstall ./some-app.AppImage
+
+# Clean up stale entries and install AppImages from current directory (CLI mode)
+AppImageInstall --cli
+
+# Same, from a specific directory, answering yes to all prompts
+AppImageInstall ~/Applications -y --cli
+
+# Integrate a single AppImage (optionally moving it to ~/Applications first)
+AppImageInstall ./some-app.AppImage -y --cli
 ```
 
 ## Build
