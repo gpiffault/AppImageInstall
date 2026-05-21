@@ -1,6 +1,6 @@
 [package]
 name = "appimage-install"
-version = "1.2.0"
+version = "2.0.0"
 edition = "2021"
 description = "Integrate AppImages into your Linux desktop"
 license = "MIT"
