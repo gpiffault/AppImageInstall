@@ -2,6 +2,8 @@
 
 Integrate AppImages into your Linux desktop with automatic desktop entries, icon extraction, and stale entry cleanup.
 
+<img src="screenshot.png" width="600" />
+
 ## Features
 
 - Finds AppImages in the given directory, adds new ones to the desktop launcher
