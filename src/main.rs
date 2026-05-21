@@ -21,7 +21,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let mut auto_yes = false;
-    let mut gui_mode = false;
+    let mut cli_mode = false;
     let mut dir_path = String::new();
 
     for arg in &args {
@@ -35,7 +35,7 @@ fn main() {
                 return;
             }
             "-y" => auto_yes = true,
-            "--gui" => gui_mode = true,
+            "--cli" => cli_mode = true,
             _ => {
                 if !arg.starts_with('-') && dir_path.is_empty() {
                     dir_path = arg.clone();
@@ -50,68 +50,68 @@ fn main() {
             .unwrap_or_else(|_| ".".to_string());
     }
 
-    if gui_mode {
-        let mut entries: Vec<AppImageEntry> = if is_single_app_image(&dir_path) {
-            vec![AppImageEntry {
-                path: dir_path.clone(),
-                name: app_base_name(&dir_path),
-                integrated: is_appimage_referenced(&dir_path),
-            }]
-        } else {
-            let pattern = format!("{}/*.AppImage", dir_path);
-            match glob(&pattern) {
-                Ok(paths) => paths
-                    .filter_map(|e| e.ok())
-                    .map(|p| {
-                        let p = p.to_string_lossy().to_string();
-                        AppImageEntry {
-                            integrated: is_appimage_referenced(&p),
-                            name: app_base_name(&p),
-                            path: p,
-                        }
-                    })
-                    .collect(),
-                Err(e) => {
-                    eprintln!("Error scanning directory: {}", e);
-                    Vec::new()
-                }
-            }
-        };
+    if cli_mode {
+        if is_single_app_image(&dir_path) {
+            cleanup_stale_entries(auto_yes);
+            install_single_app_image(&dir_path, auto_yes);
+            return;
+        }
 
-        let home_apps = install_path();
-        if home_apps != dir_path {
-            let pattern = format!("{}/*.AppImage", home_apps);
-            if let Ok(paths) = glob(&pattern) {
-                for p in paths.filter_map(|e| e.ok()) {
+        cleanup_stale_entries(auto_yes);
+        install_unintegrated_app_images(&dir_path, auto_yes);
+        return;
+    }
+
+    let mut entries: Vec<AppImageEntry> = if is_single_app_image(&dir_path) {
+        vec![AppImageEntry {
+            path: dir_path.clone(),
+            name: app_base_name(&dir_path),
+            integrated: is_appimage_referenced(&dir_path),
+        }]
+    } else {
+        let pattern = format!("{}/*.AppImage", dir_path);
+        match glob(&pattern) {
+            Ok(paths) => paths
+                .filter_map(|e| e.ok())
+                .map(|p| {
                     let p = p.to_string_lossy().to_string();
-                    if !entries.iter().any(|e| e.path == p) {
-                        entries.push(AppImageEntry {
-                            integrated: is_appimage_referenced(&p),
-                            name: app_base_name(&p),
-                            path: p,
-                        });
+                    AppImageEntry {
+                        integrated: is_appimage_referenced(&p),
+                        name: app_base_name(&p),
+                        path: p,
                     }
+                })
+                .collect(),
+            Err(e) => {
+                eprintln!("Error scanning directory: {}", e);
+                Vec::new()
+            }
+        }
+    };
+
+    let home_apps = install_path();
+    if home_apps != dir_path {
+        let pattern = format!("{}/*.AppImage", home_apps);
+        if let Ok(paths) = glob(&pattern) {
+            for p in paths.filter_map(|e| e.ok()) {
+                let p = p.to_string_lossy().to_string();
+                if !entries.iter().any(|e| e.path == p) {
+                    entries.push(AppImageEntry {
+                        integrated: is_appimage_referenced(&p),
+                        name: app_base_name(&p),
+                        path: p,
+                    });
                 }
             }
         }
-
-        let explicit = if is_single_app_image(&dir_path) {
-            Some(dir_path.clone())
-        } else {
-            None
-        };
-        run_gui(entries, explicit);
-        return;
     }
 
-    if is_single_app_image(&dir_path) {
-        cleanup_stale_entries(auto_yes);
-        install_single_app_image(&dir_path, auto_yes);
-        return;
-    }
-
-    cleanup_stale_entries(auto_yes);
-    install_unintegrated_app_images(&dir_path, auto_yes);
+    let explicit = if is_single_app_image(&dir_path) {
+        Some(dir_path.clone())
+    } else {
+        None
+    };
+    run_gui(entries, explicit);
 }
 
 fn is_single_app_image(path: &str) -> bool {
@@ -125,11 +125,11 @@ fn show_help() {
     println!(
         "AppImageInstall - Manage AppImage desktop integration\n\n\
 Usage:\n  \
-  AppImageInstall [path] [-y] [--gui]\n\n  \
+  AppImageInstall [path] [-y] [--cli]\n\n  \
   path       Directory containing .AppImage files, or a single .AppImage file\n             \
    (defaults to current directory)\n  \
   -y         Answer yes to all prompts\n  \
-  --gui      Open the graphical interface\n  \
+  --cli      Run in command-line mode (default: GUI mode)\n  \
   -v, --version  Show version\n  \
   -h, --help    Show this help\n\n\
 AppImageInstall performs two operations:\n  \
